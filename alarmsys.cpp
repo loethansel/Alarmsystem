@@ -57,7 +57,7 @@ void Init_UART()
 
     BlackLib::BlackUART gsm( BlackLib::UART1,
                              BlackLib::Baud9600,
-                             BlackLib::ParityEven,
+                             BlackLib::ParityNo,
                              BlackLib::StopOne,
                              BlackLib::Char8);
 
@@ -95,7 +95,6 @@ int main()
 //    example_directory();
 //    example_threadAndMutex();
 //    example_time();
-
 
     return 0;
 }
