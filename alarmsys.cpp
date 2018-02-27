@@ -1,33 +1,8 @@
- /*
-
- ####################################################################################
- #  BlackLib Library controls Beaglebone Black's inputs and outputs.                #
- #  Copyright (C) 2013-2015 by Yigit YUCE                                           #
- ####################################################################################
- #                                                                                  #
- #  This file is part of BlackLib library.                                          #
- #                                                                                  #
- #  BlackLib library is free software: you can redistribute it and/or modify        #
- #  it under the terms of the GNU Lesser General Public License as published by     #
- #  the Free Software Foundation, either version 3 of the License, or               #
- #  (at your option) any later version.                                             #
- #                                                                                  #
- #  BlackLib library is distributed in the hope that it will be useful,             #
- #  but WITHOUT ANY WARRANTY; without even the implied warranty of                  #
- #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   #
- #  GNU Lesser General Public License for more details.                             #
- #                                                                                  #
- #  You should have received a copy of the GNU Lesser General Public License        #
- #  along with this program.  If not, see <http://www.gnu.org/licenses/>.           #
- #                                                                                  #
- #  For any comment or suggestion please contact the creator of BlackLib Library    #
- #  at ygtyce@gmail.com                                                             #
- #                                                                                  #
- ####################################################################################
-
- */
+ /* ALARM TO EMAIL */
 #include "blacklib/BlackLib.h"
 #include "blacklib/BlackUART/BlackUART.h"
+#include <ctime>
+#include <time.h>
 #include <fstream>
 #include <string>
 #include <iostream>
@@ -80,7 +55,6 @@ void DebugOut(const char *string,unsigned int value,unsigned char valout)
    }
 #endif
 }
-
 
 //---------------------------------------------------------------------------
 // function: WriteLog
@@ -185,12 +159,12 @@ bool   barrier = FALSE;
            output_evt = clock() / CLOCKS_PER_SEC;
            outok = TRUE;
         }
+        /* Test
         if(outok) {
             WriteLog("AL_main: Alarm!!!",0,FALSE);
             execvp("./mailer.sh", NULL);
         }
-
-
+        */
         //-----------------------------------------------------------
         // Optokoppler Einlesen
         //-----------------------------------------------------------
@@ -204,41 +178,60 @@ bool   barrier = FALSE;
         else {
             barrier = FALSE;
         }
-
     }
-
-
-
 /*
+    doesn't work :o(
     string to("kontakt@flugsport-berlin.de");
-    string subject("Hallo Norbert");
+    string subject("Alarm");
     string body("Alarm, Alarm, Alarm...");
     stringstream command;
     command << "sudo echo \"" << body << "\" | mail -s \"" << subject << "\" " << to;
-    */
-/*
-    stringstream ss;
-    ss << "-s \"Testmail \" kontakt@flugsport-berlin.de";
-    char *const arr[] = {"|", "mail", "-s","Testmail","kontakt@flugsport-berlin.de",NULL};
-    char *const ar[] = {"ls","-la"};
-    //int ret = execv("/usr/bin/",ar);
+    int result = system(command.str().c_str());
+    cout << "Command: " << command.str() << endl;
+    cout << "The return value was " << result << endl;
 */
-
-//    int result = system(command.str().c_str());
-//    system("clear");
-//    cout << "Command: " << command.str() << endl;
-    //    cout << "The return value was " << result << endl;
-//    cout << "The return value was " << ret << endl;
-
-//    example_GPIO();
-//    example_ADC();
-//    example_PWM();
-//    example_SPI();
-//    example_UART();
-//    example_I2C();
-//    example_directory();
-//    example_threadAndMutex();
-//    example_time();
-
     return 0;
 }
+
+/*
+
+  /etc/ssmtp/ssmtp.conf
+
+
+# echo "Test" | mail -s "Test" ralf@pandel.de
+#--------------------------------------------------
+# Config file for sSMTP sendmail
+#
+# The person who gets all mail for userids < 1000
+# Make this empty to disable rewriting.
+root=ralf@pandel.de
+
+# The place where the mail goes. The actual machine name is required no
+# MX records are consulted. Commonly mailhosts are named mail.domain.com
+mailhub=smtp.strato.de:587
+AuthUser=ralf@pandel.de
+AuthPass=
+UserTLS=YES
+UseSTARTTLS=YES
+AuthLogin=YES
+
+
+# Where will the mail seem to come from?
+rewriteDomain=pandel.de
+
+# The full hostname
+hostname=ralf@pandel.de
+
+# Are users allowed to set their own From: address?
+# YES - Allow the user to specify their own From: address
+# NO - Use the system generated From: address
+FromLineOverride=YES
+
+--------------------------------------------------------
+Script mailer.sh
+
+#!/bin/bash
+echo "Alarm" | mail -s "Alarm" ralf@pandel.de
+
+*/
+
