@@ -138,6 +138,7 @@ struct sigaction action;
 static clock_t output_evt,tmeas_now;
 bool   outok;
 bool   barrier = FALSE;
+FILE   *fp = NULL;
 
     program_end = FALSE;
     // Set Termination Handler
@@ -161,8 +162,11 @@ bool   barrier = FALSE;
         }
         /* Test
         if(outok) {
-            WriteLog("AL_main: Alarm!!!",0,FALSE);
-            execvp("./mailer.sh", NULL);
+            WriteLog("AL_main: Alarm sending email!",0,FALSE);
+            fp = popen("./mailer.sh","w");
+            if (fp == NULL) cout << "Failed sending email" << endl;
+            else            cout << "Successs sending email" << endl;
+            pclose(fp);
         }
         */
         //-----------------------------------------------------------
@@ -171,25 +175,15 @@ bool   barrier = FALSE;
         if(Opto1.getNumericValue() == FALSE) {
             if(!barrier && outok) {
                 WriteLog("AL_main: Alarm!!!",0,FALSE);
-                execvp("./mailer.sh", NULL);
+                fp = popen("./mailer.sh","w");
+                if (fp == NULL) cout << "Failed sending email" << endl;
+                else            cout << "Successs sending email" << endl;
+                pclose(fp);
             }
             barrier = TRUE;
         }
-        else {
-            barrier = FALSE;
-        }
+        else barrier = FALSE;
     }
-/*
-    doesn't work :o(
-    string to("kontakt@flugsport-berlin.de");
-    string subject("Alarm");
-    string body("Alarm, Alarm, Alarm...");
-    stringstream command;
-    command << "sudo echo \"" << body << "\" | mail -s \"" << subject << "\" " << to;
-    int result = system(command.str().c_str());
-    cout << "Command: " << command.str() << endl;
-    cout << "The return value was " << result << endl;
-*/
     return 0;
 }
 
