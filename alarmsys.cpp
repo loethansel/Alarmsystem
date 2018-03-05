@@ -149,7 +149,7 @@ FILE   *fp = NULL;
     sigaction (SIGINT,  &action, NULL);
     // Logfile
     create_logfile();
-    BlackLib::BlackGPIO   Opto1(BlackLib::GPIO_60,BlackLib::input);
+    BlackLib::BlackGPIO   Opto1(BlackLib::GPIO_48,BlackLib::input);
     while(1) {
         //-----------------------------------------------------------
         // Sendesperre z.B. nicht mehr als einen Alarm/min. melden
