@@ -50,8 +50,8 @@ namespace BlackLib
         this->unExpPath         = "/sys/class/gpio/unexport";
         this->directionPath     = "/sys/class/gpio/gpio" + tostr(this->pinNumericName) + "/direction";
 
-
         this->doExport();
+
         this->setDirection();
     }
 
@@ -92,7 +92,8 @@ namespace BlackLib
     bool        BlackCoreGPIO::setDirection()
     {
         std::ofstream directionFile;
-
+        // Important Delay!!!
+        usleep(8000);
         directionFile.open(this->directionPath.c_str(), std::ios::out);
         if(directionFile.fail())
         {
@@ -112,6 +113,8 @@ namespace BlackLib
             }
 
             directionFile.close();
+            // Important Delay!!!
+            usleep(5000);
             this->gpioCoreError->directionFileError = false;
             return true;
         }

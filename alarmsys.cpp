@@ -1,6 +1,7 @@
  /* ALARM TO EMAIL */
 #include "blacklib/BlackLib.h"
 #include "blacklib/BlackUART/BlackUART.h"
+#include "blacklib/BlackGPIO/BlackGPIO.h"
 #include <ctime>
 #include <time.h>
 #include <fstream>
@@ -39,6 +40,25 @@ using namespace std;
 //---------------------------------------------------------------------------
 ofstream    ofs;
 bool program_end = FALSE;
+// OUTPUTS
+BlackLib::BlackGPIO  *out_1;
+BlackLib::BlackGPIO  *out_2;
+BlackLib::BlackGPIO  *out_3;
+BlackLib::BlackGPIO  *out_4;
+BlackLib::BlackGPIO  *out_5;
+BlackLib::BlackGPIO  *out_6;
+BlackLib::BlackGPIO  *out_7;
+BlackLib::BlackGPIO  *out_8;
+// INPUTS
+BlackLib::BlackGPIO  *in_1;
+BlackLib::BlackGPIO  *in_2;
+BlackLib::BlackGPIO  *in_3;
+BlackLib::BlackGPIO  *in_4;
+BlackLib::BlackGPIO  *in_5;
+BlackLib::BlackGPIO  *in_6;
+BlackLib::BlackGPIO  *in_7;
+BlackLib::BlackGPIO  *in_8;
+BlackLib::BlackGPIO  *in_9;
 
 //---------------------------------------------------------------------------
 // function: DebugOut
@@ -102,7 +122,29 @@ std::string  str;
 void termination_handler(int sig)
 {
    WriteLog("Main: Caught Signal: ",sig,TRUE);
-   WriteLog("Main: End of Communication",0,FALSE);
+   // free and unexport the output gpio's
+   out_1->~BlackGPIO();
+   out_2->~BlackGPIO();
+   out_3->~BlackGPIO();
+   out_4->~BlackGPIO();
+   out_5->~BlackGPIO();
+   out_6->~BlackGPIO();
+   out_7->~BlackGPIO();
+   out_8->~BlackGPIO();
+   WriteLog("Main: Output GPIO's unexported",0,FALSE);
+   // free and unexport the input gpio's
+   in_1->~BlackGPIO();
+   in_2->~BlackGPIO();
+   in_3->~BlackGPIO();
+   in_4->~BlackGPIO();
+   in_5->~BlackGPIO();
+   in_6->~BlackGPIO();
+   in_7->~BlackGPIO();
+   in_8->~BlackGPIO();
+   in_9->~BlackGPIO();
+   WriteLog("Main: Input GPIO's unexported",0,FALSE);
+   WriteLog("Main: close logfile..........",sig,TRUE);
+
    ofs.close();
    exit(0);
 }
@@ -127,6 +169,30 @@ stringstream s;
    clog.rdbuf(ofs.rdbuf());
 }
 
+void init_hardware(void)
+{   // Outputs
+    WriteLog("Main: Output GPIO's exported to /sys/class/gpio",0,FALSE);
+    out_1 = new BlackLib::BlackGPIO(BlackLib::GPIO_60 ,BlackLib::output,BlackLib::FastMode); // P9.12
+    out_2 = new BlackLib::BlackGPIO(BlackLib::GPIO_50 ,BlackLib::output,BlackLib::FastMode); // P9.14
+    out_3 = new BlackLib::BlackGPIO(BlackLib::GPIO_48 ,BlackLib::output,BlackLib::FastMode); // P9.15
+    out_4 = new BlackLib::BlackGPIO(BlackLib::GPIO_51 ,BlackLib::output,BlackLib::FastMode); // P9.16
+    out_5 = new BlackLib::BlackGPIO(BlackLib::GPIO_3  ,BlackLib::output,BlackLib::FastMode); // P9.21
+    out_6 = new BlackLib::BlackGPIO(BlackLib::GPIO_2  ,BlackLib::output,BlackLib::FastMode); // P9.22
+    out_7 = new BlackLib::BlackGPIO(BlackLib::GPIO_49 ,BlackLib::output,BlackLib::FastMode); // P9.23
+    out_8 = new BlackLib::BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode); // P9.25
+    // Inputs
+    WriteLog("Main: Input GPIO's exported to /sys/class/gpio",0,FALSE);
+    in_1 = new BlackLib::BlackGPIO(BlackLib::GPIO_115,BlackLib::input); // P9.27
+    in_2 = new BlackLib::BlackGPIO(BlackLib::GPIO_66 ,BlackLib::input); // P8.07
+    in_3 = new BlackLib::BlackGPIO(BlackLib::GPIO_67 ,BlackLib::input); // P8.08
+    in_4 = new BlackLib::BlackGPIO(BlackLib::GPIO_69 ,BlackLib::input); // P8.09
+    in_5 = new BlackLib::BlackGPIO(BlackLib::GPIO_68 ,BlackLib::input); // P8.10
+    in_6 = new BlackLib::BlackGPIO(BlackLib::GPIO_45 ,BlackLib::input); // P8.11
+    in_7 = new BlackLib::BlackGPIO(BlackLib::GPIO_44 ,BlackLib::input); // P8.12
+    in_8 = new BlackLib::BlackGPIO(BlackLib::GPIO_23 ,BlackLib::input); // P8.13
+    in_9 = new BlackLib::BlackGPIO(BlackLib::GPIO_26 ,BlackLib::input); // P8.14
+}
+
 //---------------------------------------------------------------------------
 // MAIN
 //---------------------------------------------------------------------------
@@ -149,7 +215,9 @@ FILE   *fp = NULL;
     sigaction (SIGINT,  &action, NULL);
     // Logfile
     create_logfile();
-    BlackLib::BlackGPIO   Opto1(BlackLib::GPIO_48,BlackLib::input);
+    init_hardware();
+    WriteLog("AL_main: Logfile Created!",0,FALSE);
+
     while(1) {
         //-----------------------------------------------------------
         // Sendesperre z.B. nicht mehr als einen Alarm/min. melden
@@ -169,9 +237,15 @@ FILE   *fp = NULL;
             pclose(fp);
         }
         */
+        // Check gpio function on P9.12
+        out_1->setValue(BlackLib::high);
+        usleep(5000);
+        out_1->setValue(BlackLib::low);
+        usleep(5000);
         //-----------------------------------------------------------
         // Optokoppler Einlesen
         //-----------------------------------------------------------
+/*
         if(Opto1.getNumericValue() == FALSE) {
             if(!barrier && outok) {
                 WriteLog("AL_main: Alarm!!!",0,FALSE);
@@ -183,6 +257,7 @@ FILE   *fp = NULL;
             barrier = TRUE;
         }
         else barrier = FALSE;
+*/
     }
     return 0;
 }

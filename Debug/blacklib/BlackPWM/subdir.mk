@@ -17,7 +17,7 @@ CPP_DEPS += \
 blacklib/BlackPWM/%.o: ../blacklib/BlackPWM/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: Cross G++ Compiler'
-	arm-linux-gnueabihf-g++ -std=c++0x -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	arm-linux-gnueabihf-g++ -std=c++0x -Ipthread -O3 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

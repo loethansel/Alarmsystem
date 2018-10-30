@@ -41,6 +41,8 @@
 #include <sstream>          // need for tostr() function
 #include <cstdio>           // need for popen() function in BlackCore::executeShellCmd()
 #include <dirent.h>         // need for dirent struct in BlackCore::searchDirectory()
+#include <stdlib.h>
+#include <unistd.h>
 
 
 
