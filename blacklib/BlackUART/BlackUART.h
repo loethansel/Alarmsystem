@@ -76,7 +76,10 @@ namespace BlackLib
                                 Baud4800                = 12,
                                 Baud9600                = 13,
                                 Baud19200               = 14,
-                                Baud38400               = 15
+                                Baud38400               = 15,
+                                Baud57600               = 0010001,
+                                Baud115200              = 0010002
+
                             };
 
 

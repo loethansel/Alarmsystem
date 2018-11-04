@@ -218,6 +218,50 @@ FILE   *fp = NULL;
     init_hardware();
     WriteLog("AL_main: Logfile Created!",0,FALSE);
 
+   BlackLib::BlackUART uartFona( BlackLib::UART1,
+                                  BlackLib::Baud115200,
+                                  BlackLib::ParityNo,
+                                  BlackLib::StopOne,
+                                  BlackLib::Char8);
+
+    bool isOpened = uartFona.open( BlackLib::ReadWrite | BlackLib::NonBlock );
+
+    if(!isOpened )
+    {
+        std::cout << "UART DEVICE CAN\'T OPEN.;" << std::endl;
+        exit(1);
+    }
+    else
+    {
+        std::string tempReadBuffer;
+        std::string tempWriteBuffer;
+
+        if(!uartFona.write("AT\r")) std::cout << "UART write Error" << std::endl;
+        tempReadBuffer = uartFona.read();
+        std::cout << tempReadBuffer << std::endl;
+        // Auf Textmode umstellen
+        uartFona.write("AT+CMGF=1\r");
+        tempReadBuffer = uartFona.read();
+        std::cout << tempReadBuffer << std::endl;
+        // SMS verfassen
+        uartFona.write("AT+CMGS=\"+491726000588\"\r");
+        tempReadBuffer = uartFona.read();
+        std::cout << tempReadBuffer << std::endl;
+        tempWriteBuffer = "Hallo Christian\32";
+        std::cout << tempWriteBuffer << std::endl;
+        uartFona.write(tempWriteBuffer);
+        tempReadBuffer = uartFona.read();
+        std::cout << tempReadBuffer << std::endl;
+        // SMS versenden
+        uartFona.write("AT+CMSS=1\r");
+        tempReadBuffer = uartFona.read();
+        std::cout << tempReadBuffer << std::endl;
+       // SMS löschen
+        //uartFona.write("AT+CMGD=4,0\r");
+        //tempReadBuffer = uartFona.read();
+        //std::cout << tempReadBuffer << std::endl;
+        std::cout << "sending SMS to Ralf!" << std::endl;
+    }
     while(1) {
         //-----------------------------------------------------------
         // Sendesperre z.B. nicht mehr als einen Alarm/min. melden
