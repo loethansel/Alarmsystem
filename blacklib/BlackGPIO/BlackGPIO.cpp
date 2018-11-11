@@ -49,6 +49,7 @@ namespace BlackLib
         this->expPath           = "/sys/class/gpio/export";
         this->unExpPath         = "/sys/class/gpio/unexport";
         this->directionPath     = "/sys/class/gpio/gpio" + tostr(this->pinNumericName) + "/direction";
+        this->gpioPath          = "/sys/class/gpio/gpio" + tostr(this->pinNumericName);
 
         this->doExport();
 
@@ -71,6 +72,10 @@ namespace BlackLib
     bool        BlackCoreGPIO::doExport()
     {
         std::ofstream expFile;
+        std::ifstream exportCheck;
+        //!! RAPA zurueck mit true, wenn GPIO schon exported ist
+        exportCheck.open(this->gpioPath.c_str(),std::ios::in|std::ios::binary);
+        if(!exportCheck.fail()) { exportCheck.close(); return true; }
 
         expFile.open(this->expPath.c_str(),std::ios::out);
         if(expFile.fail())

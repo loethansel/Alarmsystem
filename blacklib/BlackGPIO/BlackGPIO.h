@@ -115,6 +115,7 @@ namespace BlackLib
             errorCoreGPIO   *gpioCoreError;         /*!< @brief is used to hold the errors of BlackCoreGPIO class */
             int             pinNumericName;         /*!< @brief is used to hold the selected pin number */
             int             pinNumericType;         /*!< @brief is used to hold the selected pin direction */
+            std::string     gpioPath;               /*!< @brief is used to hold the @a export file path */
             std::string     expPath;                /*!< @brief is used to hold the @a export file path */
             std::string     directionPath;          /*!< @brief is used to hold the @a direction file path */
             std::string     unExpPath;              /*!< @brief is used to hold the @a unexport file path */

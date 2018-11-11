@@ -67,10 +67,6 @@ namespace BlackLib
         return os.str();
     }
 
-
-
-
-
     // ########################################### BLACKCORE DECLARATION STARTS ########################################### //
 
     /*! @brief Base class of the other classes.
@@ -83,18 +79,8 @@ namespace BlackLib
     {
         private:
             errorCore       *coreErrors;            /*!< @brief is used to hold the errors of BlackCore class */
-            std::string     capeMgrName;            /*!< @brief is used to hold the capemgr name */
             std::string     ocpName;                /*!< @brief is used to hold the ocp name */
             std::string     slotsFilePath;          /*!< @brief is used to hold the slots file path */
-
-            /*! @brief Finds full name of capemgr directory.
-            *
-            *  This function searches @b "/sys/devices/" directory,
-            *  to find directory which starts with @b "bone_capemgr."
-            *  @return True if successful, else false.
-            *  @sa BlackCore::searchDirectory()
-            */
-            bool            findCapeMgrName();
 
             /*! @brief Finds full name of ocp directory.
             *
@@ -158,12 +144,6 @@ namespace BlackLib
             *  @return errorCore struct pointer.
             */
             errorCore       *getErrorsFromCore();
-
-            /*! @brief Exports capemgr name to derived class.
-            *
-            *  @return BlackCore::capeMgrName variable.
-            */
-            std::string     getCapeMgrName();
 
             /*! @brief Exports ocp name to derived class.
             *

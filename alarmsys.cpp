@@ -2,6 +2,10 @@
 #include "blacklib/BlackLib.h"
 #include "blacklib/BlackUART/BlackUART.h"
 #include "blacklib/BlackGPIO/BlackGPIO.h"
+#include "alarmsys.h"
+#include "fona.h"
+#include "gsm_proc.h"
+
 #include <ctime>
 #include <time.h>
 #include <fstream>
@@ -33,13 +37,25 @@ using namespace std;
 //---------------------------------------------------------------------------
 #define TRUE  1
 #define FALSE 0
-#define SEND_BLOCKTIME_SEC 60
+#define SEND_BLOCKTIME_SEC 2
 #define DEBUG 1
 //---------------------------------------------------------------------------
 // GLOBAL Declarations
 //---------------------------------------------------------------------------
-ofstream    ofs;
-bool program_end = FALSE;
+ofstream ofs;
+bool program_end;
+bool sendsms;
+bool scharf;
+bool alarmactive;
+//---------------------------------------------------------------------------
+// Threads Declarations
+//---------------------------------------------------------------------------
+pthread_t maintask;
+//---------------------------------------------------------------------------
+// FOREWARD Declarations
+//---------------------------------------------------------------------------
+void *MainTask(void *value);
+
 // OUTPUTS
 BlackLib::BlackGPIO  *out_1;
 BlackLib::BlackGPIO  *out_2;
@@ -48,9 +64,9 @@ BlackLib::BlackGPIO  *out_4;
 BlackLib::BlackGPIO  *out_5;
 BlackLib::BlackGPIO  *out_6;
 BlackLib::BlackGPIO  *out_7;
-BlackLib::BlackGPIO  *out_8;
+BlackLib::BlackGPIO  *BUZZER;
 // INPUTS
-BlackLib::BlackGPIO  *in_1;
+BlackLib::BlackGPIO  *SCHARF;
 BlackLib::BlackGPIO  *in_2;
 BlackLib::BlackGPIO  *in_3;
 BlackLib::BlackGPIO  *in_4;
@@ -59,6 +75,10 @@ BlackLib::BlackGPIO  *in_6;
 BlackLib::BlackGPIO  *in_7;
 BlackLib::BlackGPIO  *in_8;
 BlackLib::BlackGPIO  *in_9;
+// TASKS
+//maintask *gsmtask;
+//GSMTASK *gsmtask;
+
 
 //---------------------------------------------------------------------------
 // function: DebugOut
@@ -122,6 +142,10 @@ std::string  str;
 void termination_handler(int sig)
 {
    WriteLog("Main: Caught Signal: ",sig,TRUE);
+   SCHARF->~BlackGPIO(); // P9.14
+   BUZZER->~BlackGPIO(); // P9.25
+
+ /*
    // free and unexport the output gpio's
    out_1->~BlackGPIO();
    out_2->~BlackGPIO();
@@ -143,8 +167,9 @@ void termination_handler(int sig)
    in_8->~BlackGPIO();
    in_9->~BlackGPIO();
    WriteLog("Main: Input GPIO's unexported",0,FALSE);
+*/
    WriteLog("Main: close logfile..........",sig,TRUE);
-
+   // close Logfile
    ofs.close();
    exit(0);
 }
@@ -167,19 +192,23 @@ stringstream s;
    ofs.open (string(s.str()));
    // Logfile Output umleiten
    clog.rdbuf(ofs.rdbuf());
+   WriteLog("AL_main: Logfile Created!",0,FALSE);
 }
 
 void init_hardware(void)
-{   // Outputs
+{
+    SCHARF = new BlackLib::BlackGPIO(BlackLib::GPIO_50 ,BlackLib::input); // P9.14
+/*
+    // Outputs
     WriteLog("Main: Output GPIO's exported to /sys/class/gpio",0,FALSE);
-    out_1 = new BlackLib::BlackGPIO(BlackLib::GPIO_60 ,BlackLib::output,BlackLib::FastMode); // P9.12
     out_2 = new BlackLib::BlackGPIO(BlackLib::GPIO_50 ,BlackLib::output,BlackLib::FastMode); // P9.14
-    out_3 = new BlackLib::BlackGPIO(BlackLib::GPIO_48 ,BlackLib::output,BlackLib::FastMode); // P9.15
     out_4 = new BlackLib::BlackGPIO(BlackLib::GPIO_51 ,BlackLib::output,BlackLib::FastMode); // P9.16
     out_5 = new BlackLib::BlackGPIO(BlackLib::GPIO_3  ,BlackLib::output,BlackLib::FastMode); // P9.21
     out_6 = new BlackLib::BlackGPIO(BlackLib::GPIO_2  ,BlackLib::output,BlackLib::FastMode); // P9.22
-    out_7 = new BlackLib::BlackGPIO(BlackLib::GPIO_49 ,BlackLib::output,BlackLib::FastMode); // P9.23
-    out_8 = new BlackLib::BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode); // P9.25
+*/
+    BUZZER = new BlackLib::BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode); // P9.25
+    BUZZER->setValue(low);
+/*
     // Inputs
     WriteLog("Main: Input GPIO's exported to /sys/class/gpio",0,FALSE);
     in_1 = new BlackLib::BlackGPIO(BlackLib::GPIO_115,BlackLib::input); // P9.27
@@ -191,7 +220,59 @@ void init_hardware(void)
     in_7 = new BlackLib::BlackGPIO(BlackLib::GPIO_44 ,BlackLib::input); // P8.12
     in_8 = new BlackLib::BlackGPIO(BlackLib::GPIO_23 ,BlackLib::input); // P8.13
     in_9 = new BlackLib::BlackGPIO(BlackLib::GPIO_26 ,BlackLib::input); // P8.14
+*/
 }
+
+void init_tasks(void)
+{   // Create Gsm-Task
+    pthread_create(&gsmtask, NULL,&GsmTask,NULL);
+    pthread_create(&maintask, NULL,&MainTask,NULL);
+    pthread_join(gsmtask,NULL);
+    pthread_join(maintask,NULL);
+}
+
+
+void *MainTask(void *value)
+{
+FILE   *fp = NULL;
+bool   outok;
+bool   barrier = false;
+static clock_t output_evt,tmeas_now;
+
+   output_evt = SEND_BLOCKTIME_SEC;
+   while(1) {
+       //-----------------------------------------------------------
+       // Sendesperre z.B. nicht mehr als einen Alarm/min. melden
+       //-----------------------------------------------------------
+       outok = false;
+       tmeas_now = clock() / CLOCKS_PER_SEC;
+       if(tmeas_now >= (output_evt + SEND_BLOCKTIME_SEC) ) {
+          output_evt = clock() / CLOCKS_PER_SEC;
+          outok = true;
+       }
+       //-----------------------------------------------------------
+       // Scharfschalter Einlesen
+       //-----------------------------------------------------------
+       if(SCHARF->getNumericValue()) {
+           if(!barrier && outok) {
+               sendsms = true;
+               WriteLog("AL_main: Alarm!!!",0,FALSE);
+               BUZZER->setValue(high);
+               sleep(2);
+               BUZZER->setValue(low);
+               // fp = popen("./mailer.sh","w");
+               // if (fp == NULL) cout << "Failed sending email" << endl;
+               // else            cout << "Successs sending email" << endl;
+               // pclose(fp);
+               barrier = true;
+           }
+       }
+       else barrier = false;
+   }
+   pthread_exit(NULL);
+}
+
+
 
 //---------------------------------------------------------------------------
 // MAIN
@@ -201,12 +282,12 @@ void init_hardware(void)
 int main()
 {
 struct sigaction action;
-static clock_t output_evt,tmeas_now;
-bool   outok;
-bool   barrier = FALSE;
-FILE   *fp = NULL;
 
-    program_end = FALSE;
+    program_end = false;
+    sendsms     = false;
+    scharf      = false;
+    alarmactive = false;
+
     // Set Termination Handler
     action.sa_handler = termination_handler;
     sigemptyset (&action.sa_mask);
@@ -215,94 +296,11 @@ FILE   *fp = NULL;
     sigaction (SIGINT,  &action, NULL);
     // Logfile
     create_logfile();
+    // IOS
     init_hardware();
-    WriteLog("AL_main: Logfile Created!",0,FALSE);
-
-   BlackLib::BlackUART uartFona( BlackLib::UART1,
-                                  BlackLib::Baud115200,
-                                  BlackLib::ParityNo,
-                                  BlackLib::StopOne,
-                                  BlackLib::Char8);
-
-    bool isOpened = uartFona.open( BlackLib::ReadWrite | BlackLib::NonBlock );
-
-    if(!isOpened )
-    {
-        std::cout << "UART DEVICE CAN\'T OPEN.;" << std::endl;
-        exit(1);
-    }
-    else
-    {
-        std::string tempReadBuffer;
-        std::string tempWriteBuffer;
-
-        if(!uartFona.write("AT\r")) std::cout << "UART write Error" << std::endl;
-        tempReadBuffer = uartFona.read();
-        std::cout << tempReadBuffer << std::endl;
-        // Auf Textmode umstellen
-        uartFona.write("AT+CMGF=1\r");
-        tempReadBuffer = uartFona.read();
-        std::cout << tempReadBuffer << std::endl;
-        // SMS verfassen
-        uartFona.write("AT+CMGS=\"+491726000588\"\r");
-        tempReadBuffer = uartFona.read();
-        std::cout << tempReadBuffer << std::endl;
-        tempWriteBuffer = "Hallo Christian\32";
-        std::cout << tempWriteBuffer << std::endl;
-        uartFona.write(tempWriteBuffer);
-        tempReadBuffer = uartFona.read();
-        std::cout << tempReadBuffer << std::endl;
-        // SMS versenden
-        uartFona.write("AT+CMSS=1\r");
-        tempReadBuffer = uartFona.read();
-        std::cout << tempReadBuffer << std::endl;
-       // SMS löschen
-        //uartFona.write("AT+CMGD=4,0\r");
-        //tempReadBuffer = uartFona.read();
-        //std::cout << tempReadBuffer << std::endl;
-        std::cout << "sending SMS to Ralf!" << std::endl;
-    }
-    while(1) {
-        //-----------------------------------------------------------
-        // Sendesperre z.B. nicht mehr als einen Alarm/min. melden
-        //-----------------------------------------------------------
-        outok = FALSE;
-        tmeas_now = clock() / CLOCKS_PER_SEC;
-        if(tmeas_now >= (output_evt + SEND_BLOCKTIME_SEC) ) {
-           output_evt = clock() / CLOCKS_PER_SEC;
-           outok = TRUE;
-        }
-        /* Test
-        if(outok) {
-            WriteLog("AL_main: Alarm sending email!",0,FALSE);
-            fp = popen("./mailer.sh","w");
-            if (fp == NULL) cout << "Failed sending email" << endl;
-            else            cout << "Successs sending email" << endl;
-            pclose(fp);
-        }
-        */
-        // Check gpio function on P9.12
-        out_1->setValue(BlackLib::high);
-        usleep(5000);
-        out_1->setValue(BlackLib::low);
-        usleep(5000);
-        //-----------------------------------------------------------
-        // Optokoppler Einlesen
-        //-----------------------------------------------------------
-/*
-        if(Opto1.getNumericValue() == FALSE) {
-            if(!barrier && outok) {
-                WriteLog("AL_main: Alarm!!!",0,FALSE);
-                fp = popen("./mailer.sh","w");
-                if (fp == NULL) cout << "Failed sending email" << endl;
-                else            cout << "Successs sending email" << endl;
-                pclose(fp);
-            }
-            barrier = TRUE;
-        }
-        else barrier = FALSE;
-*/
-    }
+    // TASKS
+    init_tasks();
+    // first Logmessage
     return 0;
 }
 

@@ -42,10 +42,7 @@ namespace BlackLib
     BlackCore::BlackCore()
     {
         this->coreErrors = new errorCore();
-
-        this->findCapeMgrName();
         this->findOcpName();
-        this->slotsFilePath = "/sys/devices/" + this->capeMgrName + "/slots";
     }
 
     BlackCore::~BlackCore()
@@ -103,24 +100,6 @@ namespace BlackLib
         closedir(path);
 
         return SEARCH_DIR_NOT_FOUND;
-    }
-
-    bool        BlackCore::findCapeMgrName()
-    {
-        std::string searchResult = this->searchDirectory("/sys/devices/","bone_capemgr.");
-
-        if(searchResult == SEARCH_DIR_NOT_FOUND)
-        {
-            this->capeMgrName = "bone_capemgr." + DEFAULT_CAPE_MGR_NUMBER;
-            this->coreErrors->capeMgrError = true;
-            return false;
-        }
-        else
-        {
-            this->capeMgrName = searchResult;
-            this->coreErrors->capeMgrError = false;
-            return true;
-        }
     }
 
     bool        BlackCore::findOcpName()
@@ -230,14 +209,6 @@ namespace BlackLib
     {
         return (this->coreErrors);
     }
-
-
-
-    std::string BlackCore::getCapeMgrName()
-    {
-        return this->capeMgrName;
-    }
-
     std::string BlackCore::getOcpName()
     {
         return this->ocpName;
