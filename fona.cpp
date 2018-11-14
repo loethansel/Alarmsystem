@@ -36,6 +36,9 @@ FONA::FONA() : BlackUART(UART2,Baud115200,ParityNo,StopOne,Char8)
         InitIo();
         cout << "Fona on UART2 is open...." << endl;
     }
+    this->fonalive = false;
+    this->fonarssi = false;
+    this->poweredon  = false;
 }
 
 int FONA::InitIo(void)
@@ -71,9 +74,13 @@ unsigned int i;
         pwr_out->setValue(high);
         // check pwrpin and AT\r => OK
         if(IsRunning()) {
-            if(LiveCheck()) return true;
+            if(LiveCheck()) {
+            	this->poweredon = true;
+            	return true;
+            }
         }
     }
+	this->poweredon = false;
     return false;
 }
 
@@ -155,9 +162,13 @@ int retval;
        read(readArr,100);
        rbuff = readArr;
        retval = rbuff.find("OK");
-       if(retval != -1) return true;
+       if(retval != -1) {
+           this->fonalive = true;
+    	   return true;
+       }
        sleep(1);
    }
+   this->fonalive = false;
    return false;
 }
 
@@ -193,8 +204,14 @@ int i;
                ss << rbuff;
                rxpegel_numeric = stoi(ss.str());
                cout << "Empfangspegel: "  << ss.str() << endl;
-               if(rxpegel_numeric == 0) return false;
-               else return true;
+               if(rxpegel_numeric == 0) {
+                   this->fonarssi = false;
+            	   return false;
+               }
+               else {
+                   this->fonarssi = true;
+            	   return true;
+               }
             }
         }
     }

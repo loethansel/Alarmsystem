@@ -234,7 +234,7 @@ void init_tasks(void)
 
 void *MainTask(void *value)
 {
-FILE   *fp = NULL;
+//FILE   *fp = NULL;
 bool   outok;
 bool   barrier = false;
 static clock_t output_evt,tmeas_now;

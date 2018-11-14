@@ -9,7 +9,10 @@
 #define GSM_PROC_H_
 
 // xx SekundenCheck des GSM-Moduls
-#define LIVE_TIMER 10
+#define MAX_DEAD_LIVETIME 300
+#define MAX_DEAD_RSSITIME 120
+#define LIVE_TIMER 60
+#define RSSI_TIMER 60
 
 extern pthread_t gsmtask;
 extern void *GsmTask(void *value);
