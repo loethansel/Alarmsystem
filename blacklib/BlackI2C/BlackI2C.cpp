@@ -145,9 +145,6 @@ namespace BlackLib
 
 
 
-
-
-
     bool    BlackI2C::writeByte(uint8_t registerAddr, uint8_t value)
     {
         this->setSlave();

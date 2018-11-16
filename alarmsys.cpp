@@ -1,33 +1,8 @@
  /* ALARM TO EMAIL */
-#include "blacklib/BlackLib.h"
-#include "blacklib/BlackUART/BlackUART.h"
-#include "blacklib/BlackGPIO/BlackGPIO.h"
+//---------------------------------------------------------------------------
+// INCLUDE
+//---------------------------------------------------------------------------
 #include "alarmsys.h"
-#include "fona.h"
-#include "gsm_proc.h"
-
-#include <ctime>
-#include <time.h>
-#include <fstream>
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-/*
-#include "blacklib/examples/example_GPIO.h"
-#include "blacklib/examples/example_ADC.h"
-#include "blacklib/examples/example_PWM.h"
-#include "blacklib/examples/example_SPI.h"
-#include "blacklib/examples/example_UART.h"
-#include "blacklib/examples/example_I2C.h"
-#include "blacklib/examples/example_directory.h"
-#include "blacklib/examples/example_threadAndMutex.h"
-#include "blacklib/examples/example_time.h"
-*/
-
 //---------------------------------------------------------------------------
 // USING NAMESPACE
 //---------------------------------------------------------------------------
@@ -47,6 +22,7 @@ bool program_end;
 bool sendsms;
 bool scharf;
 bool alarmactive;
+
 //---------------------------------------------------------------------------
 // Threads Declarations
 //---------------------------------------------------------------------------
@@ -238,23 +214,48 @@ void *MainTask(void *value)
 bool   outok;
 bool   barrier = false;
 static clock_t output_evt,tmeas_now;
+static int seccnt     = 0;
+static int sectimer   = 0;
+static int mintimer   = 0;
+static int hourtimer  = 0;
+bool relaison = false;
+
+   // RELAIS
+   serialrelais relais;
+   uint8_t version;
+   version = relais.getFirmwareVersion();
+   if(version == 0) cout << "Relaisausgänge arbeiten nicht!" << endl;
+   // END RELAIS
 
    output_evt = SEND_BLOCKTIME_SEC;
    while(1) {
        //-----------------------------------------------------------
        // Sendesperre z.B. nicht mehr als einen Alarm/min. melden
        //-----------------------------------------------------------
-       outok = false;
+       seccnt = false;
        tmeas_now = clock() / CLOCKS_PER_SEC;
        if(tmeas_now >= (output_evt + SEND_BLOCKTIME_SEC) ) {
           output_evt = clock() / CLOCKS_PER_SEC;
-          outok = true;
+          sectimer++;
+          if(sectimer >= 60) {
+              sectimer = 0;
+              if(mintimer++ >= 60) {
+                 mintimer = 0;
+                 if(hourtimer++ >= 24) hourtimer = 0;
+              }
+          }
+          seccnt = true;
+          //version = relais.getFirmwareVersion();
+          if(relaison) { relais.turn_off_channel(1); relaison = false; }
+          else { relais.turn_on_channel(1); relaison = true; }
+
+
        }
        //-----------------------------------------------------------
        // Scharfschalter Einlesen
        //-----------------------------------------------------------
        if(SCHARF->getNumericValue()) {
-           if(!barrier && outok) {
+           if(!barrier && seccnt) {
                sendsms = true;
                WriteLog("AL_main: Alarm!!!",0,FALSE);
                BUZZER->setValue(high);
@@ -294,8 +295,11 @@ struct sigaction action;
     action.sa_flags = SA_NODEFER;
     sigaction (SIGTERM, &action, NULL);
     sigaction (SIGINT,  &action, NULL);
+
     // Logfile
     create_logfile();
+    // read inputfiles
+    if(!ReadFiles()) { cout << "couldt not read inputfiles => exit" << endl; return 0; }
     // IOS
     init_hardware();
     // TASKS

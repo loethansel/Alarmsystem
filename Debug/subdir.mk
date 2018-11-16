@@ -6,17 +6,29 @@
 CPP_SRCS += \
 ../alarmsys.cpp \
 ../fona.cpp \
-../gsm_proc.cpp 
+../gsm_proc.cpp \
+../ntpserver.cpp \
+../rtc.cpp \
+../serialrelais.cpp \
+../xbee.cpp 
 
 OBJS += \
 ./alarmsys.o \
 ./fona.o \
-./gsm_proc.o 
+./gsm_proc.o \
+./ntpserver.o \
+./rtc.o \
+./serialrelais.o \
+./xbee.o 
 
 CPP_DEPS += \
 ./alarmsys.d \
 ./fona.d \
-./gsm_proc.d 
+./gsm_proc.d \
+./ntpserver.d \
+./rtc.d \
+./serialrelais.d \
+./xbee.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
