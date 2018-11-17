@@ -2,18 +2,29 @@
  * fona.h
  *
  *  Created on: Nov 8, 2018
- *      Author: linux
+ *      Author: Pandel
  */
 
 #ifndef FONA_H_
 #define FONA_H_
-#include<string>
+// INCLUDES
+#include <ctime>
+#include <time.h>
+#include <fstream>
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <pthread.h>
 #include "blacklib/BlackLib.h"
 #include "blacklib/BlackUART/BlackUART.h"
-
+// NAMESPACES
 using namespace std;
 using namespace BlackLib;
-
+// CLASS
 class FONA : public BlackUART
 {
 public:

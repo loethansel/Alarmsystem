@@ -2,19 +2,9 @@
  * fona.cpp
  *
  *  Created on: Nov 8, 2018
- *      Author: linux
+ *      Author: Pandel
  */
-#include <ctime>
-#include <time.h>
-#include <fstream>
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <pthread.h>
+// INCLUDES
 #include "fona.h"
 // Declaration
 

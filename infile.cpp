@@ -2,19 +2,21 @@
  * infile.cpp
  *
  *  Created on: Nov 16, 2018
- *      Author: linux
+ *      Author: Pandel
  */
+// INCLUDES
 #include "infile.h"
-
+// NAMESPACES
 using namespace std;
 
 s_alarmzentrale alarmzentrale;
 s_msgtxt        msgtext;
-
+// FOREWARD DECLARATIONS
 bool ReadAlarmNumbers(void);
 bool ReadAlarmMsg(void);
 bool ReadFiles(void);
 
+// Reads all files in the system
 bool ReadFiles(void)
 {
    if(!ReadAlarmNumbers()) return false;
@@ -22,6 +24,7 @@ bool ReadFiles(void)
    return true;
 }
 
+// Reads the file with Alarm numbers
 bool ReadAlarmNumbers(void)
 {
 ifstream     numberfile;
@@ -75,6 +78,7 @@ int pos_a, pos_b, pos_c;
    return true;
 }
 
+// Reads the file with Alarm Messages
 bool ReadAlarmMsg(void)
 {
 ifstream     msgfile;

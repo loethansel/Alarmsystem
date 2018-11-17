@@ -7,7 +7,6 @@
  * Create Time   :   June 2018
  * Change Log    :
  */
-
 #ifndef SERIALRELAIS_H_
 #define SERIALRELAIS_H_
 // INCLUDES PROGRAM

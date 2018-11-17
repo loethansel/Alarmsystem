@@ -2,8 +2,9 @@
  * gsm_proc.cpp
  *
  *  Created on: Nov 9, 2018
- *      Author: linux
- */
+ *      Author: Pandel
+ *
+ *       */
 // INCLUDES
 #include "gsm_proc.h"
 // NAMESPACES
@@ -34,7 +35,7 @@ FONA FONA1;
    while(1) {
 	   // second clock for time dependent functions
        tmeas_now = clock() / CLOCKS_PER_SEC;
-       if(tmeas_now >= (output_evt) ) {
+       if(tmeas_now >= (output_evt+1) ) {
           output_evt = clock() / CLOCKS_PER_SEC;
           // check live unconditionally
           if(FONA1.poweredon) livetimer++;

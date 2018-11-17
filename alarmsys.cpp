@@ -7,12 +7,10 @@
 // USING NAMESPACE
 //---------------------------------------------------------------------------
 using namespace std;
+using namespace BlackLib;
 //---------------------------------------------------------------------------
 // GLOBAL Defines
 //---------------------------------------------------------------------------
-#define TRUE  1
-#define FALSE 0
-#define SEND_BLOCKTIME_SEC 2
 #define DEBUG 1
 //---------------------------------------------------------------------------
 // GLOBAL Declarations
@@ -33,28 +31,11 @@ pthread_t maintask;
 void *MainTask(void *value);
 
 // OUTPUTS
-BlackLib::BlackGPIO  *out_1;
-BlackLib::BlackGPIO  *out_2;
-BlackLib::BlackGPIO  *out_3;
-BlackLib::BlackGPIO  *out_4;
-BlackLib::BlackGPIO  *out_5;
-BlackLib::BlackGPIO  *out_6;
-BlackLib::BlackGPIO  *out_7;
-BlackLib::BlackGPIO  *BUZZER;
+BlackGPIO  *BUZZER;
+BlackGPIO  *LED;
 // INPUTS
-BlackLib::BlackGPIO  *SCHARF;
-BlackLib::BlackGPIO  *in_2;
-BlackLib::BlackGPIO  *in_3;
-BlackLib::BlackGPIO  *in_4;
-BlackLib::BlackGPIO  *in_5;
-BlackLib::BlackGPIO  *in_6;
-BlackLib::BlackGPIO  *in_7;
-BlackLib::BlackGPIO  *in_8;
-BlackLib::BlackGPIO  *in_9;
-// TASKS
-//maintask *gsmtask;
-//GSMTASK *gsmtask;
-
+BlackGPIO  *SCHARF;
+BlackGPIO  *UNSCHARF;
 
 //---------------------------------------------------------------------------
 // function: DebugOut
@@ -117,34 +98,13 @@ std::string  str;
 //---------------------------------------------------------------------------
 void termination_handler(int sig)
 {
-   WriteLog("Main: Caught Signal: ",sig,TRUE);
-   SCHARF->~BlackGPIO(); // P9.14
-   BUZZER->~BlackGPIO(); // P9.25
-
- /*
-   // free and unexport the output gpio's
-   out_1->~BlackGPIO();
-   out_2->~BlackGPIO();
-   out_3->~BlackGPIO();
-   out_4->~BlackGPIO();
-   out_5->~BlackGPIO();
-   out_6->~BlackGPIO();
-   out_7->~BlackGPIO();
-   out_8->~BlackGPIO();
-   WriteLog("Main: Output GPIO's unexported",0,FALSE);
-   // free and unexport the input gpio's
-   in_1->~BlackGPIO();
-   in_2->~BlackGPIO();
-   in_3->~BlackGPIO();
-   in_4->~BlackGPIO();
-   in_5->~BlackGPIO();
-   in_6->~BlackGPIO();
-   in_7->~BlackGPIO();
-   in_8->~BlackGPIO();
-   in_9->~BlackGPIO();
-   WriteLog("Main: Input GPIO's unexported",0,FALSE);
-*/
-   WriteLog("Main: close logfile..........",sig,TRUE);
+   WriteLog("Main: Caught Signal: ",sig,true);
+   SCHARF->~BlackGPIO();   // P9.14
+   BUZZER->~BlackGPIO();   // P9.25
+   UNSCHARF->~BlackGPIO(); // P9.16
+   LED->~BlackGPIO();      // P9.27
+   // Logfile last Output
+   WriteLog("Main: close logfile..........",sig,true);
    // close Logfile
    ofs.close();
    exit(0);
@@ -168,43 +128,45 @@ stringstream s;
    ofs.open (string(s.str()));
    // Logfile Output umleiten
    clog.rdbuf(ofs.rdbuf());
-   WriteLog("AL_main: Logfile Created!",0,FALSE);
+   WriteLog("AL_main: Logfile Created!",0,false);
 }
 
 void init_hardware(void)
 {
-    SCHARF = new BlackLib::BlackGPIO(BlackLib::GPIO_50 ,BlackLib::input); // P9.14
-/*
-    // Outputs
-    WriteLog("Main: Output GPIO's exported to /sys/class/gpio",0,FALSE);
-    out_2 = new BlackLib::BlackGPIO(BlackLib::GPIO_50 ,BlackLib::output,BlackLib::FastMode); // P9.14
-    out_4 = new BlackLib::BlackGPIO(BlackLib::GPIO_51 ,BlackLib::output,BlackLib::FastMode); // P9.16
-    out_5 = new BlackLib::BlackGPIO(BlackLib::GPIO_3  ,BlackLib::output,BlackLib::FastMode); // P9.21
-    out_6 = new BlackLib::BlackGPIO(BlackLib::GPIO_2  ,BlackLib::output,BlackLib::FastMode); // P9.22
-*/
-    BUZZER = new BlackLib::BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode); // P9.25
+    // INPUTS
+    WriteLog("Main: Input GPIO's exported to /sys/class/gpio",0,false);
+    SCHARF   = new BlackGPIO(BlackLib::GPIO_50 ,BlackLib::input); // P9.14
+    UNSCHARF = new BlackGPIO(BlackLib::GPIO_51 ,BlackLib::input); // P9.16
+    // OUTPUTS
+    WriteLog("Main: Output GPIO's exported to /sys/class/gpio",0,false);
+    BUZZER = new BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode);  // P9.25
     BUZZER->setValue(low);
-/*
-    // Inputs
-    WriteLog("Main: Input GPIO's exported to /sys/class/gpio",0,FALSE);
-    in_1 = new BlackLib::BlackGPIO(BlackLib::GPIO_115,BlackLib::input); // P9.27
-    in_2 = new BlackLib::BlackGPIO(BlackLib::GPIO_66 ,BlackLib::input); // P8.07
-    in_3 = new BlackLib::BlackGPIO(BlackLib::GPIO_67 ,BlackLib::input); // P8.08
-    in_4 = new BlackLib::BlackGPIO(BlackLib::GPIO_69 ,BlackLib::input); // P8.09
-    in_5 = new BlackLib::BlackGPIO(BlackLib::GPIO_68 ,BlackLib::input); // P8.10
-    in_6 = new BlackLib::BlackGPIO(BlackLib::GPIO_45 ,BlackLib::input); // P8.11
-    in_7 = new BlackLib::BlackGPIO(BlackLib::GPIO_44 ,BlackLib::input); // P8.12
-    in_8 = new BlackLib::BlackGPIO(BlackLib::GPIO_23 ,BlackLib::input); // P8.13
-    in_9 = new BlackLib::BlackGPIO(BlackLib::GPIO_26 ,BlackLib::input); // P8.14
-*/
+    LED    = new BlackGPIO(BlackLib::GPIO_115,BlackLib::output,BlackLib::FastMode); // P9.27
+    LED->setValue(low);
+    // out_2 = new BlackLib::BlackGPIO(BlackLib::GPIO_50 ,BlackLib::output,BlackLib::FastMode); // P9.14
+    // out_4 = new BlackLib::BlackGPIO(BlackLib::GPIO_51 ,BlackLib::output,BlackLib::FastMode); // P9.16
+    // out_5 = new BlackLib::BlackGPIO(BlackLib::GPIO_3  ,BlackLib::output,BlackLib::FastMode); // P9.21
+    // out_6 = new BlackLib::BlackGPIO(BlackLib::GPIO_2  ,BlackLib::output,BlackLib::FastMode); // P9.22
+    // in_1 = new BlackLib::BlackGPIO(BlackLib::GPIO_115,BlackLib::input); // P9.27
+    // in_2 = new BlackLib::BlackGPIO(BlackLib::GPIO_66 ,BlackLib::input); // P8.07
+    // in_3 = new BlackLib::BlackGPIO(BlackLib::GPIO_67 ,BlackLib::input); // P8.08
+    // in_4 = new BlackLib::BlackGPIO(BlackLib::GPIO_69 ,BlackLib::input); // P8.09
+    // in_5 = new BlackLib::BlackGPIO(BlackLib::GPIO_68 ,BlackLib::input); // P8.10
+    // in_6 = new BlackLib::BlackGPIO(BlackLib::GPIO_45 ,BlackLib::input); // P8.11
+    // in_7 = new BlackLib::BlackGPIO(BlackLib::GPIO_44 ,BlackLib::input); // P8.12
+    // in_8 = new BlackLib::BlackGPIO(BlackLib::GPIO_23 ,BlackLib::input); // P8.13
+    // in_9 = new BlackLib::BlackGPIO(BlackLib::GPIO_26 ,BlackLib::input); // P8.14
 }
 
-void init_tasks(void)
+bool init_tasks(void)
 {   // Create Gsm-Task
-    pthread_create(&gsmtask, NULL,&GsmTask,NULL);
-    pthread_create(&maintask, NULL,&MainTask,NULL);
-    pthread_join(gsmtask,NULL);
-    pthread_join(maintask,NULL);
+    if(pthread_create(&maintask, NULL,&MainTask,NULL)) return false;
+    if(pthread_create(&aintask, NULL,&AinTask,NULL))   return false;
+    if(pthread_create(&gsmtask, NULL,&GsmTask,NULL))   return false;
+    if(pthread_join(aintask,NULL))  return false;
+    if(pthread_join(gsmtask,NULL))  return false;
+    if(pthread_join(maintask,NULL)) return false;
+    return true;
 }
 
 
@@ -213,6 +175,7 @@ void *MainTask(void *value)
 //FILE   *fp = NULL;
 bool   outok;
 bool   barrier = false;
+int    i;
 static clock_t output_evt,tmeas_now;
 static int seccnt     = 0;
 static int sectimer   = 0;
@@ -227,14 +190,14 @@ bool relaison = false;
    if(version == 0) cout << "Relaisausgänge arbeiten nicht!" << endl;
    // END RELAIS
 
-   output_evt = SEND_BLOCKTIME_SEC;
+   output_evt = 0;
    while(1) {
        //-----------------------------------------------------------
        // Sendesperre z.B. nicht mehr als einen Alarm/min. melden
        //-----------------------------------------------------------
        seccnt = false;
        tmeas_now = clock() / CLOCKS_PER_SEC;
-       if(tmeas_now >= (output_evt + SEND_BLOCKTIME_SEC) ) {
+       if(tmeas_now >= (output_evt + 1) ) {
           output_evt = clock() / CLOCKS_PER_SEC;
           sectimer++;
           if(sectimer >= 60) {
@@ -245,30 +208,56 @@ bool relaison = false;
               }
           }
           seccnt = true;
-          //version = relais.getFirmwareVersion();
-          if(relaison) { relais.turn_off_channel(1); relaison = false; }
-          else { relais.turn_on_channel(1); relaison = true; }
-
-
+          //!! RELAISTEST
+          if(scharf) {
+             //version = relais.getFirmwareVersion();
+             if(relaison) {
+                 relais.turn_off_channel(1);
+                 relais.turn_off_channel(2);
+                 relais.turn_off_channel(3);
+                 relais.turn_off_channel(4);
+                 relaison = false;
+             }
+             else {
+                 relais.turn_on_channel(1);
+                 relais.turn_on_channel(2);
+                 relais.turn_on_channel(3);
+                 relais.turn_on_channel(4);
+                 relaison = true;
+             }
+          } else  {
+              relais.turn_off_channel(1);
+              relais.turn_off_channel(2);
+              relais.turn_off_channel(3);
+              relais.turn_off_channel(4);
+              relaison = false;
+          }
        }
        //-----------------------------------------------------------
        // Scharfschalter Einlesen
        //-----------------------------------------------------------
-       if(SCHARF->getNumericValue()) {
-           if(!barrier && seccnt) {
-               sendsms = true;
-               WriteLog("AL_main: Alarm!!!",0,FALSE);
-               BUZZER->setValue(high);
-               sleep(2);
-               BUZZER->setValue(low);
-               // fp = popen("./mailer.sh","w");
-               // if (fp == NULL) cout << "Failed sending email" << endl;
-               // else            cout << "Successs sending email" << endl;
-               // pclose(fp);
-               barrier = true;
+       if((SCHARF->getNumericValue() == high) && !scharf)  {
+           WriteLog("AL_main: Alarmanlage scharf geschaltet!",0,false);
+           scharf  = true;
+           LED->setValue(high);
+           for(i=0;i<3;i++) {
+              BUZZER->setValue(high);
+              usleep(500000);
+              BUZZER->setValue(low);
+              usleep(500000);
            }
        }
-       else barrier = false;
+       //-----------------------------------------------------------
+       // Unscharfschalter Einlesen
+       //-----------------------------------------------------------
+       if((UNSCHARF->getNumericValue() == high) && scharf)  {
+           WriteLog("AL_main: Alarmanlage unscharf geschaltet!",0,false);
+           scharf  = false;
+           LED->setValue(low);
+           BUZZER->setValue(high);
+           sleep(2);
+           BUZZER->setValue(low);
+       }
    }
    pthread_exit(NULL);
 }
@@ -299,14 +288,22 @@ struct sigaction action;
     // Logfile
     create_logfile();
     // read inputfiles
-    if(!ReadFiles()) { cout << "couldt not read inputfiles => exit" << endl; return 0; }
+    if(!ReadFiles())  { cout << "couldt not read inputfiles => exit" << endl; return 0; }
     // IOS
     init_hardware();
     // TASKS
-    init_tasks();
+    if(!init_tasks()) { cout << "error while creating tasks => exit" << endl; return 0; };
     // first Logmessage
     return 0;
 }
+
+
+// fp = popen("./mailer.sh","w");
+// if (fp == NULL) cout << "Failed sending email" << endl;
+// else            cout << "Successs sending email" << endl;
+// pclose(fp);
+
+
 
 /*
 
