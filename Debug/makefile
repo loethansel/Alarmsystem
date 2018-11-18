@@ -30,6 +30,7 @@ RM := rm -rf
 -include blacklib/BlackDirectory/subdir.mk
 -include blacklib/BlackADC/subdir.mk
 -include blacklib/subdir.mk
+-include Driver/subdir.mk
 -include subdir.mk
 -include objects.mk
 

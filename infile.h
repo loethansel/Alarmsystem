@@ -5,6 +5,8 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <string.h>
+
 
 
 // xx SekundenCheck des GSM-Moduls

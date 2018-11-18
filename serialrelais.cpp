@@ -21,7 +21,6 @@ serialrelais::serialrelais() : BlackI2C(BlackLib::I2C_2, 0x11)
     }
 }
 
-
 uint8_t serialrelais::getFirmwareVersion(void)
 {
 uint8_t firmwareversion;

@@ -246,6 +246,9 @@ bool relaison = false;
               BUZZER->setValue(low);
               usleep(500000);
            }
+           BUZZER->setValue(high);
+           sleep(1);
+           BUZZER->setValue(low);
        }
        //-----------------------------------------------------------
        // Unscharfschalter Einlesen

@@ -132,5 +132,33 @@ int pos_a, pos_b, pos_c;
    return true;
 }
 
+void readini(void)
+{
+/*
+    char BUFFER01[100];
+    char BUFFER02[100];
+    char szIniFile[MAX_PATH];
+
+    //Speichert die ini Datei im selben Verzeichnis wie Die Exe
+    GetModuleFileName(NULL,szIniFile,sizeof(szIniFile));
+    *(strrchr(szIniFile,'\\')+1) = 0;
+    lstrcat(szIniFile,"test.ini");
+
+    //WritePrivateProfileString Schreibt informationen in eine INI Datei
+    WritePrivateProfileString("EINSTELLUNGEN" , "WERT01" , "Test-01" , szIniFile);
+    WritePrivateProfileString("EINSTELLUNGEN" , "WERT02" , "Test-02" , szIniFile);
+
+    //GetPrivateProfileString Liesst die informationen aus der INI Datei
+    GetPrivateProfileString("EINSTELLUNGEN", "WERT01" , "Test-Fehler" , BUFFER01, sizeof(szIniFile), szIniFile);
+    GetPrivateProfileString("EINSTELLUNGEN", "WERT02" , "Test-Fehler" , BUFFER02, sizeof(szIniFile), szIniFile);
+
+    //Dateien aus INI Laden
+    printf("%s\n","[EINSTELLUNGEN]");
+    printf("%s\n", BUFFER01);
+    printf("%s\n", BUFFER02);
+    printf("%s\n","..");
+*/
+}
+
 
 
