@@ -27,10 +27,6 @@
 
  */
 
-
-
-
-
 #ifndef EXAMPLE_ADC_H_
 #define EXAMPLE_ADC_H_
 
@@ -38,11 +34,6 @@
 #include "../BlackADC/BlackADC.h"
 #include <string>
 #include <iostream>
-
-
-
-
-
 
 void example_ADC()
 {

@@ -15,7 +15,7 @@
 #include <iostream>
 // INCLUDE PROGRAM
 #include "alarmsys.h"
-#include "infile.h"
+#include "files/ctrlfile.h"
 // NAMESPACES
 using namespace std;
 using namespace BlackLib;

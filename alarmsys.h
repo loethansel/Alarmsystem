@@ -24,22 +24,24 @@
 #include "fona.h"
 #include "gsm_proc.h"
 #include "serialrelais.h"
-#include "infile.h"
 #include "ain_proc.h"
+#include "files/ctrlfile.h"
+//#include "logger/logger.h"
 
 using namespace std;
 using namespace BlackLib;
 
 // GLOBAL VARS
 extern bool sendsms;
-extern bool scharf;
+extern bool armed;
 extern bool alarmactive;
-extern BlackGPIO  *BUZZER;
-extern BlackGPIO  *LED;
+
+extern BlackGPIO  *OUT_BUZZER;
+extern BlackGPIO  *OUT_LED;
 // INPUTS
-extern BlackGPIO  *SCHARF;
-extern BlackGPIO  *UNSCHARF;
-
-
+extern BlackGPIO  *IN_SCHARF;
+extern BlackGPIO  *IN_UNSCHARF;
+// FILES
+//!!extern ctrlfile   *CTRLFILE;
 
 #endif /* ALARMSYS_H_ */

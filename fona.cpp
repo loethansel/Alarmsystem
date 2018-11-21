@@ -336,7 +336,7 @@ int retval;
 FONA::~FONA()
 {
     close();
-    pwr_out->~BlackGPIO();
-    pwr_in->~BlackGPIO();
-    rst_out->~BlackGPIO();
+    delete pwr_out;
+    delete pwr_in;
+    delete rst_out;
 }

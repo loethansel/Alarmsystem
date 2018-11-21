@@ -1,4 +1,4 @@
-#include "bme680.h"
+#include "../driver/bme680.h"
 
 /**static variables */
 /**Look up table for the possible gas range values */

@@ -43,12 +43,12 @@ FONA FONA1;
           if(FONA1.fonalive)  rssitimer++;
        }
        // sharp-signal from mainthread, read files on every going "sharp"
-       if(scharf && !status) {
+       if(armed && !status) {
            // read credit
            FONA1.CreditCheck();
            status = true;
        }
-       else if(!scharf) status = false;
+       else if(!armed) status = false;
        // sendsms-signal from mainthread
        if(sendsms) {
            // TODO: send email too

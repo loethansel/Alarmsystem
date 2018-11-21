@@ -5,27 +5,88 @@
  *      Author: Pandel
  */
 // INCLUDES
-#include "infile.h"
+#include "ctrlfile.h"
 // NAMESPACES
 using namespace std;
 
-s_alarmzentrale alarmzentrale;
-s_msgtxt        msgtext;
-// FOREWARD DECLARATIONS
-bool ReadAlarmNumbers(void);
-bool ReadAlarmMsg(void);
-bool ReadFiles(void);
+
+ctrlfile::ctrlfile(void)
+{
+   armed_from_file = false;
+}
 
 // Reads all files in the system
-bool ReadFiles(void)
+bool ctrlfile::ReadFiles(void)
 {
    if(!ReadAlarmNumbers()) return false;
    if(!ReadAlarmMsg())     return false;
+   if(!ReadSystemArmed())  return false;
    return true;
 }
 
+bool ctrlfile::WriteFiles(void)
+{
+   if(!WriteSystemArmed(false)) return false;
+   return true;
+}
+
+
+bool ctrlfile::WriteSystemArmed(bool ctrl)
+{
+ofstream     armedfile;
+const char   armedfilename[] = ARMEDFILE;
+
+   armed_from_file = ctrl;
+   armedfile.open(armedfilename, ios_base::out);
+   if(!armedfile) {
+       cout << "SystemArmed: Datei kann nicht zum Schreiben geöffnet werden." << endl;
+       return false;
+   }
+   else {
+      armedfile << "STX" << endl;
+      if(ctrl) armedfile << "1" << endl;
+      else     armedfile << "0" << endl;
+	  armedfile << "ETX" << endl;
+   }
+   return true;
+}
+
+bool ctrlfile::ReadSystemArmed(void)
+{
+ifstream     armedfile;
+string       s;
+stringstream ss;
+const char numberfilename[] = ARMEDFILE;
+char       line[255];
+int        retval;
+bool       readval;
+
+   armedfile.open(numberfilename, ios_base::in);
+   if(!armedfile) {
+       cout << "SystemArmed: Datei kann nicht zum lesen geöffnet werden." << endl;
+       return false;
+   }
+   else {
+      armedfile.getline(line,MAX_NUM_LEN,'\n');
+      s = line;
+      retval = s.find("STX");
+      if(retval != -1) {
+         armedfile.getline(line,MAX_NUM_LEN,'\n');
+         if(line[0] == '1') readval = true;
+         if(line[0] == '0') readval = false;
+      } else return false;
+      armedfile.getline(line,MAX_NUM_LEN,'\n');
+      s = line;
+      retval = s.find("ETX");
+      if(retval == -1) return false;
+   }
+   armed_from_file = readval;
+   return true;
+}
+
+
 // Reads the file with Alarm numbers
-bool ReadAlarmNumbers(void)
+bool ctrlfile::ReadAlarmNumbers(void)
 {
 ifstream     numberfile;
 string       s;
@@ -45,7 +106,7 @@ int pos_a, pos_b, pos_c;
        s = line;
        retval = s.find("STX");
        if(retval != -1) {
-           alarmzentrale.numcnt = 0;
+           alarmnum.numcnt = 0;
            for(i=0;i<MAX_NUM;i++) {
               // read line
               numberfile.getline(line,MAX_NUM_LEN,'\n');
@@ -62,11 +123,11 @@ int pos_a, pos_b, pos_c;
               len2 = pos_c - pos_b -1;
               if(len2 > MAX_NUM_LEN) len2 = MAX_NUM_LEN;
               // read number "+491759944339"
-              alarmzentrale.numname[i].numberlen = s.copy(alarmzentrale.numname[i].number,len1,pos_a+1);
+              alarmnum.numname[i].numberlen = s.copy(alarmnum.numname[i].number,len1,pos_a+1);
               // read name "Ralf"
-              alarmzentrale.numname[i].namelen   = s.copy(alarmzentrale.numname[i].name,len2,pos_b+1);
+              alarmnum.numname[i].namelen   = s.copy(alarmnum.numname[i].name,len2,pos_b+1);
               // numbercnt increment
-              alarmzentrale.numcnt++;
+              alarmnum.numcnt++;
            }
        } else {
            cout << "Alarmnummern: STX nicht gefunden." << endl;
@@ -79,7 +140,7 @@ int pos_a, pos_b, pos_c;
 }
 
 // Reads the file with Alarm Messages
-bool ReadAlarmMsg(void)
+bool ctrlfile::ReadAlarmMsg(void)
 {
 ifstream     msgfile;
 string       s;
@@ -99,7 +160,7 @@ int pos_a, pos_b, pos_c;
        s = line;
        retval = s.find("STX");
        if(retval != -1) {
-           alarmzentrale.numcnt = 0;
+           alarmnum.numcnt = 0;
            for(i=0;i<MAX_NUM;i++) {
               // read line
               msgfile.getline(line,MAX_MSG_LEN,'\n');
@@ -132,8 +193,15 @@ int pos_a, pos_b, pos_c;
    return true;
 }
 
-void readini(void)
+ctrlfile::~ctrlfile(void)
 {
+	ctrlfile::WriteFiles();
+}
+
+
+bool ctrlfile::ReadInifile(void)
+{
+	return true;
 /*
     char BUFFER01[100];
     char BUFFER02[100];

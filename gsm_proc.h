@@ -16,7 +16,7 @@
 // INCLUDE PROGRAM
 #include "fona.h"
 #include "alarmsys.h"
-#include "infile.h"
+#include "files/ctrlfile.h"
 // xx SekundenCheck des GSM-Moduls
 #define MAX_DEAD_LIVETIME 300
 #define MAX_DEAD_RSSITIME 120

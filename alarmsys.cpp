@@ -18,7 +18,7 @@ using namespace BlackLib;
 ofstream ofs;
 bool program_end;
 bool sendsms;
-bool scharf;
+bool armed;
 bool alarmactive;
 
 //---------------------------------------------------------------------------
@@ -29,13 +29,14 @@ pthread_t maintask;
 // FOREWARD Declarations
 //---------------------------------------------------------------------------
 void *MainTask(void *value);
-
 // OUTPUTS
-BlackGPIO  *BUZZER;
-BlackGPIO  *LED;
+BlackGPIO  *OUT_BUZZER;
+BlackGPIO  *OUT_LED;
 // INPUTS
-BlackGPIO  *SCHARF;
-BlackGPIO  *UNSCHARF;
+BlackGPIO  *IN_SCHARF;
+BlackGPIO  *IN_UNSCHARF;
+// FILES
+ctrlfile   *CTRLFILE;
 
 //---------------------------------------------------------------------------
 // function: DebugOut
@@ -99,10 +100,6 @@ std::string  str;
 void termination_handler(int sig)
 {
    WriteLog("Main: Caught Signal: ",sig,true);
-   SCHARF->~BlackGPIO();   // P9.14
-   BUZZER->~BlackGPIO();   // P9.25
-   UNSCHARF->~BlackGPIO(); // P9.16
-   LED->~BlackGPIO();      // P9.27
    // Logfile last Output
    WriteLog("Main: close logfile..........",sig,true);
    // close Logfile
@@ -131,18 +128,22 @@ stringstream s;
    WriteLog("AL_main: Logfile Created!",0,false);
 }
 
-void init_hardware(void)
+void init_system(void)
 {
     // INPUTS
     WriteLog("Main: Input GPIO's exported to /sys/class/gpio",0,false);
-    SCHARF   = new BlackGPIO(BlackLib::GPIO_50 ,BlackLib::input); // P9.14
-    UNSCHARF = new BlackGPIO(BlackLib::GPIO_51 ,BlackLib::input); // P9.16
+    IN_SCHARF   = new BlackGPIO(BlackLib::GPIO_50 ,BlackLib::input); // P9.14
+    IN_UNSCHARF = new BlackGPIO(BlackLib::GPIO_51 ,BlackLib::input); // P9.16
     // OUTPUTS
     WriteLog("Main: Output GPIO's exported to /sys/class/gpio",0,false);
-    BUZZER = new BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode);  // P9.25
-    BUZZER->setValue(low);
-    LED    = new BlackGPIO(BlackLib::GPIO_115,BlackLib::output,BlackLib::FastMode); // P9.27
-    LED->setValue(low);
+    OUT_BUZZER = new BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode);  // P9.25
+    OUT_BUZZER->setValue(low);
+    OUT_LED    = new BlackGPIO(BlackLib::GPIO_115,BlackLib::output,BlackLib::FastMode); // P9.27
+    OUT_LED->setValue(low);
+    // FILES
+    CTRLFILE = new ctrlfile;
+
+
     // out_2 = new BlackLib::BlackGPIO(BlackLib::GPIO_50 ,BlackLib::output,BlackLib::FastMode); // P9.14
     // out_4 = new BlackLib::BlackGPIO(BlackLib::GPIO_51 ,BlackLib::output,BlackLib::FastMode); // P9.16
     // out_5 = new BlackLib::BlackGPIO(BlackLib::GPIO_3  ,BlackLib::output,BlackLib::FastMode); // P9.21
@@ -166,6 +167,11 @@ bool init_tasks(void)
     if(pthread_join(aintask,NULL))  return false;
     if(pthread_join(gsmtask,NULL))  return false;
     if(pthread_join(maintask,NULL)) return false;
+    delete IN_SCHARF;   // P9.14
+    delete IN_UNSCHARF; // P9.16
+    delete OUT_BUZZER;  // P9.25
+    delete OUT_LED;     // P9.27
+    delete CTRLFILE;    // File-IO Modul
     return true;
 }
 
@@ -185,8 +191,9 @@ bool relaison = false;
 
    // RELAIS
    serialrelais relais;
-   uint8_t version;
-   version = relais.getFirmwareVersion();
+   // TEST
+   uint8_t      version;
+   version      = relais.getFirmwareVersion();
    if(version == 0) cout << "Relaisausgänge arbeiten nicht!" << endl;
    // END RELAIS
 
@@ -208,8 +215,10 @@ bool relaison = false;
               }
           }
           seccnt = true;
+          // read control-file cyclic 1 sec.
+          CTRLFILE->ReadFiles();
           //!! RELAISTEST
-          if(scharf) {
+          if(armed) {
              //version = relais.getFirmwareVersion();
              if(relaison) {
                  relais.turn_off_channel(1);
@@ -236,30 +245,32 @@ bool relaison = false;
        //-----------------------------------------------------------
        // Scharfschalter Einlesen
        //-----------------------------------------------------------
-       if((SCHARF->getNumericValue() == high) && !scharf)  {
+       if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)) && !armed)  {
            WriteLog("AL_main: Alarmanlage scharf geschaltet!",0,false);
-           scharf  = true;
-           LED->setValue(high);
+           armed  = true;
+           CTRLFILE->WriteSystemArmed(true);
+           OUT_LED->setValue(high);
            for(i=0;i<3;i++) {
-              BUZZER->setValue(high);
+              OUT_BUZZER->setValue(high);
               usleep(500000);
-              BUZZER->setValue(low);
+              OUT_BUZZER->setValue(low);
               usleep(500000);
            }
-           BUZZER->setValue(high);
+           OUT_BUZZER->setValue(high);
            sleep(1);
-           BUZZER->setValue(low);
+           OUT_BUZZER->setValue(low);
        }
        //-----------------------------------------------------------
        // Unscharfschalter Einlesen
        //-----------------------------------------------------------
-       if((UNSCHARF->getNumericValue() == high) && scharf)  {
+       if(((IN_UNSCHARF->getNumericValue() == high) || !(CTRLFILE->armed_from_file)) && armed)  {
            WriteLog("AL_main: Alarmanlage unscharf geschaltet!",0,false);
-           scharf  = false;
-           LED->setValue(low);
-           BUZZER->setValue(high);
+           armed  = false;
+           CTRLFILE->WriteSystemArmed(false);
+           OUT_LED->setValue(low);
+           OUT_BUZZER->setValue(high);
            sleep(2);
-           BUZZER->setValue(low);
+           OUT_BUZZER->setValue(low);
        }
    }
    pthread_exit(NULL);
@@ -278,7 +289,7 @@ struct sigaction action;
 
     program_end = false;
     sendsms     = false;
-    scharf      = false;
+    armed       = false;
     alarmactive = false;
 
     // Set Termination Handler
@@ -290,10 +301,12 @@ struct sigaction action;
 
     // Logfile
     create_logfile();
+    // IO'S, FILES CLASSES
+    init_system();
     // read inputfiles
-    if(!ReadFiles())  { cout << "couldt not read inputfiles => exit" << endl; return 0; }
-    // IOS
-    init_hardware();
+    if(!CTRLFILE->ReadFiles())  { cout << "couldt not read controlfiles => exit"  << endl; return 0; }
+    // write ctrlfiles
+    if(!CTRLFILE->WriteFiles()) { cout << "couldt not write controlfiles => exit" << endl; return 0; }
     // TASKS
     if(!init_tasks()) { cout << "error while creating tasks => exit" << endl; return 0; };
     // first Logmessage
