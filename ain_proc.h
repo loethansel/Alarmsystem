@@ -16,14 +16,22 @@
 // INCLUDE PROGRAM
 #include "alarmsys.h"
 #include "files/ctrlfile.h"
+#include "blacklib/BlackADC/BlackADC.h"
 // NAMESPACES
 using namespace std;
 using namespace BlackLib;
+
+// typedef float (*fptr_t) (digitAfterPoint mode);
+
 // DEFINES
 #define AINVAL1 1
 #define AINVAL2 2
 #define AINVAL3 3
 #define AINVAL4 4
+#define VOLTPRODIGIT 0.439453
+#define MAXLINE 4
+#define UMAX 1.00
+#define UMIN 0.30
 // EXTERN DECLARAIONS
 extern void *AinTask(void *value);
 extern pthread_t aintask;

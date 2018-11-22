@@ -173,7 +173,7 @@ bool Seeed_BME680::init()
     if(sensor_param.intf==BME680_I2C_INTF)
 	{
 //!! REPARIEREN und dann alles testen...
-	    //sensor_param.read  = Seeed_BME680::iic_read;
+	    //sensor_param.read  = iic_read;
 	    //sensor_param.write = Seeed_BME680::iic_write;
   	} 
     sensor_param.delay_ms = delay_msec;

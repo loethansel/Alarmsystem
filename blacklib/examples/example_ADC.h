@@ -38,13 +38,14 @@
 void example_ADC()
 {
 
-    BlackLib::BlackADC analog(BlackLib::AIN4 );         // initialization analog input
+                                                                                                                                                                                                       // initialization analog input
 
 
     std::string valueStr;
     int         valueInt;
     float       valueFloat;
 
+    BlackLib::BlackADC analog(BlackLib::AIN4 );
 
     valueStr = analog.getValue();
 

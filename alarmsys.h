@@ -43,5 +43,7 @@ extern BlackGPIO  *IN_SCHARF;
 extern BlackGPIO  *IN_UNSCHARF;
 // FILES
 //!!extern ctrlfile   *CTRLFILE;
+#define ON  true
+#define OFF false
 
 #endif /* ALARMSYS_H_ */

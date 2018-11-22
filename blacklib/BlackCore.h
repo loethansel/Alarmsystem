@@ -108,11 +108,6 @@ namespace BlackLib
             */
             std::string     searchDirectory(std::string searchIn, std::string searchThis);
 
-            /*! @brief First declaration of this function.
-            */
-            virtual bool    loadDeviceTree() = 0;
-
-
 
         protected:
 

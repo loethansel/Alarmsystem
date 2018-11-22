@@ -30,13 +30,14 @@ pthread_t maintask;
 //---------------------------------------------------------------------------
 void *MainTask(void *value);
 // OUTPUTS
-BlackGPIO  *OUT_BUZZER;
-BlackGPIO  *OUT_LED;
+BlackGPIO    *OUT_BUZZER;
+BlackGPIO    *OUT_LED;
 // INPUTS
-BlackGPIO  *IN_SCHARF;
-BlackGPIO  *IN_UNSCHARF;
+BlackGPIO    *IN_SCHARF;
+BlackGPIO    *IN_UNSCHARF;
 // FILES
-ctrlfile   *CTRLFILE;
+ctrlfile     *CTRLFILE;
+serialrelais *RELAIS;
 
 //---------------------------------------------------------------------------
 // function: DebugOut
@@ -142,6 +143,9 @@ void init_system(void)
     OUT_LED->setValue(low);
     // FILES
     CTRLFILE = new ctrlfile;
+    // RELAIS
+    RELAIS   = new serialrelais;
+
 
 
     // out_2 = new BlackLib::BlackGPIO(BlackLib::GPIO_50 ,BlackLib::output,BlackLib::FastMode); // P9.14
@@ -172,28 +176,75 @@ bool init_tasks(void)
     delete OUT_BUZZER;  // P9.25
     delete OUT_LED;     // P9.27
     delete CTRLFILE;    // File-IO Modul
+    delete RELAIS;      // Relais
     return true;
 }
 
+bool switch_relais(bool onoff)
+{
+    if(onoff) {
+        RELAIS->turn_on_channel(1);
+        RELAIS->turn_on_channel(2);
+        RELAIS->turn_on_channel(3);
+        RELAIS->turn_on_channel(4);
+    }
+    else {
+        RELAIS->turn_off_channel(1);
+        RELAIS->turn_off_channel(2);
+        RELAIS->turn_off_channel(3);
+        RELAIS->turn_off_channel(4);
+    }
+    return true;
+}
+
+void set_armed(void)
+{
+int i;
+    WriteLog("AL_main: Alarmanlage scharf geschaltet!",0,false);
+    armed  = true;
+    CTRLFILE->WriteSystemArmed(true);
+    OUT_LED->setValue(high);
+    for(i=0;i<3;i++) {
+       OUT_BUZZER->setValue(high);
+       usleep(500000);
+       OUT_BUZZER->setValue(low);
+       usleep(500000);
+    }
+    OUT_BUZZER->setValue(high);
+    sleep(1);
+    OUT_BUZZER->setValue(low);
+}
+
+
+void set_unarmed(void)
+{
+    WriteLog("AL_main: Alarmanlage unscharf geschaltet!",0,false);
+    armed       = false;
+    alarmactive = false;
+    switch_relais(OFF);
+
+    CTRLFILE->WriteSystemArmed(false);
+    OUT_LED->setValue(low);
+    OUT_BUZZER->setValue(high);
+    sleep(2);
+    OUT_BUZZER->setValue(low);
+}
 
 void *MainTask(void *value)
 {
 //FILE   *fp = NULL;
-bool   outok;
+//bool   outok;
 bool   barrier = false;
-int    i;
 static clock_t output_evt,tmeas_now;
-static int seccnt     = 0;
 static int sectimer   = 0;
 static int mintimer   = 0;
 static int hourtimer  = 0;
-bool relaison = false;
 
-   // RELAIS
-   serialrelais relais;
+
    // TEST
    uint8_t      version;
-   version      = relais.getFirmwareVersion();
+   version      = RELAIS->getFirmwareVersion();
+   switch_relais(OFF);
    if(version == 0) cout << "Relaisausgänge arbeiten nicht!" << endl;
    // END RELAIS
 
@@ -202,7 +253,6 @@ bool relaison = false;
        //-----------------------------------------------------------
        // Sendesperre z.B. nicht mehr als einen Alarm/min. melden
        //-----------------------------------------------------------
-       seccnt = false;
        tmeas_now = clock() / CLOCKS_PER_SEC;
        if(tmeas_now >= (output_evt + 1) ) {
           output_evt = clock() / CLOCKS_PER_SEC;
@@ -214,63 +264,34 @@ bool relaison = false;
                  if(hourtimer++ >= 24) hourtimer = 0;
               }
           }
-          seccnt = true;
           // read control-file cyclic 1 sec.
           CTRLFILE->ReadFiles();
-          //!! RELAISTEST
-          if(armed) {
-             //version = relais.getFirmwareVersion();
-             if(relaison) {
-                 relais.turn_off_channel(1);
-                 relais.turn_off_channel(2);
-                 relais.turn_off_channel(3);
-                 relais.turn_off_channel(4);
-                 relaison = false;
-             }
-             else {
-                 relais.turn_on_channel(1);
-                 relais.turn_on_channel(2);
-                 relais.turn_on_channel(3);
-                 relais.turn_on_channel(4);
-                 relaison = true;
-             }
-          } else  {
-              relais.turn_off_channel(1);
-              relais.turn_off_channel(2);
-              relais.turn_off_channel(3);
-              relais.turn_off_channel(4);
-              relaison = false;
+          // ALARMAUSGABE
+          if(alarmactive && !barrier && armed) {
+              switch_relais(ON);
+              output_evt = 0;
+              barrier = true;
           }
+       }
+       //-----------------------------------------------------------
+       // Alarmzeit
+       //-----------------------------------------------------------
+       if(mintimer >= 1) {
+           set_unarmed();
+           barrier = false;
        }
        //-----------------------------------------------------------
        // Scharfschalter Einlesen
        //-----------------------------------------------------------
        if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)) && !armed)  {
-           WriteLog("AL_main: Alarmanlage scharf geschaltet!",0,false);
-           armed  = true;
-           CTRLFILE->WriteSystemArmed(true);
-           OUT_LED->setValue(high);
-           for(i=0;i<3;i++) {
-              OUT_BUZZER->setValue(high);
-              usleep(500000);
-              OUT_BUZZER->setValue(low);
-              usleep(500000);
-           }
-           OUT_BUZZER->setValue(high);
-           sleep(1);
-           OUT_BUZZER->setValue(low);
+           if(!alarmactive) set_armed();
+           barrier = false;
        }
        //-----------------------------------------------------------
        // Unscharfschalter Einlesen
        //-----------------------------------------------------------
        if(((IN_UNSCHARF->getNumericValue() == high) || !(CTRLFILE->armed_from_file)) && armed)  {
-           WriteLog("AL_main: Alarmanlage unscharf geschaltet!",0,false);
-           armed  = false;
-           CTRLFILE->WriteSystemArmed(false);
-           OUT_LED->setValue(low);
-           OUT_BUZZER->setValue(high);
-           sleep(2);
-           OUT_BUZZER->setValue(low);
+           set_unarmed();
        }
    }
    pthread_exit(NULL);
@@ -308,7 +329,7 @@ struct sigaction action;
     // write ctrlfiles
     if(!CTRLFILE->WriteFiles()) { cout << "couldt not write controlfiles => exit" << endl; return 0; }
     // TASKS
-    if(!init_tasks()) { cout << "error while creating tasks => exit" << endl; return 0; };
+    if(!init_tasks())           { cout << "error while creating tasks => exit" << endl; return 0; };
     // first Logmessage
     return 0;
 }

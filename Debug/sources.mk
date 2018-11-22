@@ -45,7 +45,6 @@ CPP_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
-Driver \
 . \
 blacklib/BlackADC \
 blacklib \
@@ -69,4 +68,7 @@ blacklib/Release/BlackSPI \
 blacklib/Release/BlackThread \
 blacklib/Release/BlackTime \
 blacklib/Release/BlackUART \
+driver \
+files \
+logger \
 

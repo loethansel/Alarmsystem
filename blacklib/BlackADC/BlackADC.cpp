@@ -40,59 +40,11 @@ namespace BlackLib
     BlackCoreADC::BlackCoreADC()
     {
         this->adcCoreErrors = new errorCoreADC( this->getErrorsFromCore() );
-
-        this->loadDeviceTree();
-        this->findHelperName();
     }
 
     BlackCoreADC::~BlackCoreADC()
     {
         delete this->adcCoreErrors;
-    }
-
-
-    bool        BlackCoreADC::loadDeviceTree()
-    {
-        std::string file = this->getSlotsFilePath();
-        std::ofstream slotsFile;
-        slotsFile.open(file.c_str(), std::ios::out);
-        if(slotsFile.fail())
-        {
-            slotsFile.close();
-            this->adcCoreErrors->dtError = true;
-            return false;
-        }
-        else
-        {
-            slotsFile << "cape-bone-iio";
-            slotsFile.close();
-            this->adcCoreErrors->dtError = false;
-            return true;
-        }
-    }
-
-    bool        BlackCoreADC::findHelperName()
-    {
-        std::string limitedSearchResult = this->searchDirectoryOcp(BlackCore::ADC_helper);
-
-        if(limitedSearchResult == SEARCH_DIR_NOT_FOUND)
-        {
-            this->helperName = "helper." + DEFAULT_HELPER_NUMBER;
-            this->adcCoreErrors->helperError = true;
-            return false;
-        }
-        else
-        {
-            this->helperName = limitedSearchResult;
-            this->adcCoreErrors->helperError = false;
-            return true;
-        }
-    }
-
-    std::string BlackCoreADC::getHelperPath()
-    {
-        std::string temp = "/sys/devices/" + this->getOcpName() + "/" + this->helperName;
-        return temp;
     }
 
     errorCoreADC *BlackCoreADC::getErrorsFromCoreADC()
@@ -116,7 +68,7 @@ namespace BlackLib
     {
         this->adcErrors                 = new errorADC( this->getErrorsFromCoreADC() );
         this->ainName                   = adc;
-        this->ainPath                   = this->getHelperPath() + "/AIN" + tostr(this->ainName);
+        this->ainPath                   = "/sys/bus/iio/devices/iio:device0/in_voltage" + tostr(this->ainName) + "_raw";
     }
 
 
