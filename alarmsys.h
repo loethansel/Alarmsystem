@@ -26,6 +26,7 @@
 #include "relais/serialrelais.h"
 #include "analog/ain_proc.h"
 #include "files/ctrlfile.h"
+#include "files/iniparser.h"
 //#include "logger/logger.h"
 
 using namespace std;
@@ -43,6 +44,7 @@ extern BlackGPIO    *IN_SCHARF;
 extern BlackGPIO    *IN_UNSCHARF;
 // FILES
 extern ctrlfile     *CTRLFILE;
+extern INIParser    *INIFILE;
 // RELAIS
 extern serialrelais *RELAIS;
 

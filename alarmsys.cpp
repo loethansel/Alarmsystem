@@ -37,6 +37,7 @@ BlackGPIO    *IN_SCHARF;
 BlackGPIO    *IN_UNSCHARF;
 // FILES
 ctrlfile     *CTRLFILE;
+INIParser    *INIFILE;
 serialrelais *RELAIS;
 
 //---------------------------------------------------------------------------
@@ -145,6 +146,7 @@ void init_system(void)
     CTRLFILE = new ctrlfile;
     // RELAIS
     RELAIS   = new serialrelais;
+    INIFILE  = new INIParser;
 
 
 
@@ -177,6 +179,7 @@ bool init_tasks(void)
     delete OUT_LED;     // P9.27
     delete CTRLFILE;    // File-IO Modul
     delete RELAIS;      // Relais
+    delete INIFILE;     // IninFile read/write
     return true;
 }
 
@@ -242,6 +245,9 @@ static clock_t output_evt,tmeas_now;
 static int sectimer   = 0;
 static int mintimer   = 0;
 static int hourtimer  = 0;
+string autoalarmstr;
+string alarmtime;
+bool   retval;
 
 
    // TEST
@@ -250,6 +256,11 @@ static int hourtimer  = 0;
    switch_relais(OFF);
    if(version == 0) cout << "Relaisausgänge arbeiten nicht!" << endl;
    // END RELAIS
+
+   // INIFILETEST
+   retval       = INIFILE->ReadINI("/home/debian/Alarmsystem/configfiles/config.ini");
+   autoalarmstr = INIFILE->GetValue("ALARM","autoalarm");
+   alarmtime    = INIFILE->GetValue("ALARM","alarmtime");
 
    output_evt = 0;
    while(1) {
