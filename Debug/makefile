@@ -8,7 +8,11 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include rtc/subdir.mk
+-include relais/subdir.mk
+-include radio/subdir.mk
 -include logger/subdir.mk
+-include gsm/subdir.mk
 -include files/subdir.mk
 -include driver/subdir.mk
 -include blacklib/Release/BlackUART/subdir.mk
@@ -33,6 +37,7 @@ RM := rm -rf
 -include blacklib/BlackDirectory/subdir.mk
 -include blacklib/BlackADC/subdir.mk
 -include blacklib/subdir.mk
+-include analog/subdir.mk
 -include subdir.mk
 -include objects.mk
 

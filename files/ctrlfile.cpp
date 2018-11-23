@@ -21,6 +21,7 @@ bool ctrlfile::ReadFiles(void)
    if(!ReadAlarmNumbers()) return false;
    if(!ReadAlarmMsg())     return false;
    if(!ReadSystemArmed())  return false;
+   if(!ReadLines())        return false;
    return true;
 }
 
@@ -206,9 +207,9 @@ ifstream     linefile;
 string       s;
 stringstream ss;
 const char linesfilename[] = LINESFILE;
-char line[255];
+char line[255],hstr[255];
 int retval;
-int i,len1,len2;
+int i,len1,len2,len3;
 int pos_a, pos_b, pos_c, pos_d;
 
    linefile.open(linesfilename, ios_base::in);
@@ -228,30 +229,28 @@ int pos_a, pos_b, pos_c, pos_d;
               // check End Of Text
               retval = s.find("ETX");
               if(retval != -1) break;
-
-              //!!if(static_cast<char>(s.c_str[0]) == '1') lines.l[i].account = true;
-
-          //    s.copy(lines.l[i].account,len1,pos_a+1);
-//              pos_a + 1 => Schleife aktiv
-
-              // if not ETX read new number
+              // if not ETX Check string
               pos_a = s.find_first_of(':',0);
               pos_b = s.find_first_of('-',0);
               pos_c = s.find_first_of('+',0);
               pos_d = s.find_first_of(';',0);
-
-
-
-              len1 = pos_b - pos_a -1;
-              if(len1 > MAX_NUM_LEN) len1 = MAX_NUM_LEN;
+              len1 = 1;
               len2 = pos_c - pos_b -1;
-              if(len2 > MAX_NUM_LEN) len2 = MAX_NUM_LEN;
-              // read number "+491759944339"
-              alarmnum.numname[i].numberlen = s.copy(alarmnum.numname[i].number,len1,pos_a+1);
-              // read name "Ralf"
-              alarmnum.numname[i].namelen   = s.copy(alarmnum.numname[i].name,len2,pos_b+1);
+              len3 = pos_d - pos_c -1;
+              if(len2 > MAX_LINE_LEN) len2 = MAX_LINE_LEN;
+              if(len3 > MAX_LINE_LEN) len3 = MAX_LINE_LEN;
+              // copy first sign
+              s.copy(hstr,len1,pos_a+1);
+              if(hstr[0] == '1') lines.l[i].account = true;
+              else               lines.l[i].account = false;
+              // copy of Umin
+              s.copy(hstr,len2,pos_b+1);
+              lines.l[i].umin = stof(hstr);
+              // copy of Umax
+              s.copy(hstr,len3,pos_c+1);
+              lines.l[i].umax = stof(hstr);
               // numbercnt increment
-              alarmnum.numcnt++;
+              lines.cnt++;
            }
        } else {
            cout << "Alarmnummern: STX nicht gefunden." << endl;

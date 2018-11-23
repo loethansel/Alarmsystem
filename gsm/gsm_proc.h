@@ -15,11 +15,11 @@
 #include <iostream>
 // INCLUDE PROGRAM
 #include "fona.h"
-#include "alarmsys.h"
-#include "files/ctrlfile.h"
+#include "../alarmsys.h"
+#include "../files/ctrlfile.h"
 // xx SekundenCheck des GSM-Moduls
 #define MAX_DEAD_LIVETIME 300
-#define MAX_DEAD_RSSITIME 120
+#define MAX_DEAD_RSSITIME 300
 #define LIVE_TIMER 60
 #define RSSI_TIMER 60
 // EXTERN DECLARAIONS

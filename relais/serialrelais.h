@@ -10,8 +10,8 @@
 #ifndef SERIALRELAIS_H_
 #define SERIALRELAIS_H_
 // INCLUDES PROGRAM
-#include "blacklib/BlackLib.h"
-#include "blacklib/BlackI2C/BlackI2C.h"
+#include "../blacklib/BlackLib.h"
+#include "../blacklib/BlackI2C/BlackI2C.h"
 // NAMESPACES
 using namespace std;
 using namespace BlackLib;

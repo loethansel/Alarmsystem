@@ -6,7 +6,6 @@
  */
 // INCLUDES
 #include "ain_proc.h"
-#include "alarmsys.h"
 // GLOBALVARS
 pthread_t aintask;
 
@@ -19,6 +18,7 @@ string  valueStr;
 int     valueInt;
 float   valueFloat[4];
 int     i;
+int     maxline;
 BlackLib::BlackADC analog0(BlackLib::AIN0 );
 BlackLib::BlackADC analog1(BlackLib::AIN1 );
 BlackLib::BlackADC analog2(BlackLib::AIN2 );
@@ -26,6 +26,17 @@ BlackLib::BlackADC analog3(BlackLib::AIN3 );
 
 //   fptr_t  analogfkt[4];
 //   analogfkt[0] = analog0.getConvertedValue;
+/*
+typedef struct {
+    bool   account;
+    float  umin;
+    float  umax;
+} s_linestxt;
+typedef struct {
+    s_linestxt l[MAXLINES];
+    int    cnt;
+} s_lines;
+*/
 
    output_evt = 0;
 
@@ -39,11 +50,20 @@ BlackLib::BlackADC analog3(BlackLib::AIN3 );
           valueFloat[1] = analog1.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
           valueFloat[2] = analog2.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
           valueFloat[3] = analog3.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
-          // Read all the lines
-          for(i=0;i<MAXLINE;i++){
+          // copy the file readed maxlines cnt
+          maxline = CTRLFILE->lines.cnt;
+          // chek the value and correct
+          if(maxline > MAXLINE) maxline = MAXLINE;
+          // Read all the lines to maxline
+          for(i=0;i<maxline;i++) {
+              // Values to standard out
               cout << "LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[i] << endl;
-              if((valueFloat[i] >= UMAX) || (valueFloat[i] <= UMIN)) {
-                  alarmactive = true;
+              // copy value for application
+              CTRLFILE->lines.l[i].ucurr = valueFloat[i];
+              // check if value is off-limit
+              if((valueFloat[i] >= CTRLFILE->lines.l[i].umax) || (valueFloat[i] <= CTRLFILE->lines.l[i].umin)) {
+                  // set alarm if line is permitted
+                  if(CTRLFILE->lines.l[i].account) alarmactive = true;
                   // TODO: Werte ins Logfile
               }
           }

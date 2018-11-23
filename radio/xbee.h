@@ -7,8 +7,8 @@
 
 #ifndef XBEE_H_
 #define XBEE_H_
-#include "blacklib/BlackLib.h"
-#include "blacklib/BlackUART/BlackUART.h"
+#include "../blacklib/BlackLib.h"
+#include "../blacklib/BlackUART/BlackUART.h"
 
 
 using namespace std;

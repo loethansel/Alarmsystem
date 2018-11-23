@@ -257,6 +257,7 @@ stringstream rd;
 stringstream wr;
 int i;
 int retval;
+char  number[50];
 
        // check the module with some AT\r commands
        if(!LiveCheck()) return false;
@@ -292,6 +293,10 @@ int retval;
        // send SMS header
        flush(bothDirection);
        tbuff.clear(); rbuff.clear();
+
+       //!! weitermachen
+       //number = CTRLFILE->alarmnum.numname[0].number;
+
        tbuff = "AT+CMGS=\"+491759944339\"\r";
        length = tbuff.copy(writeArr,tbuff.size(),0);
        writeArr[length] = '\0';

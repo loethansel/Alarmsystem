@@ -200,6 +200,8 @@ bool switch_relais(bool onoff)
 void set_armed(void)
 {
 int i;
+    // only set to armed if not alarm line is active or armed yet
+    if(armed || alarmactive) return;
     WriteLog("AL_main: Alarmanlage scharf geschaltet!",0,false);
     armed  = true;
     CTRLFILE->WriteSystemArmed(true);
@@ -218,6 +220,7 @@ int i;
 
 void set_unarmed(void)
 {
+    if(!armed) return;
     WriteLog("AL_main: Alarmanlage unscharf geschaltet!",0,false);
     armed       = false;
     alarmactive = false;
@@ -266,31 +269,46 @@ static int hourtimer  = 0;
           }
           // read control-file cyclic 1 sec.
           CTRLFILE->ReadFiles();
-          // ALARMAUSGABE
+          // !!! ****** ALARMAUSGABE ****** !!!
           if(alarmactive && !barrier && armed) {
               switch_relais(ON);
+              // reset alarmtimecounter
               output_evt = 0;
+              sectimer   = 0;
+              mintimer   = 0;
+              hourtimer  = 0;
               barrier = true;
           }
        }
        //-----------------------------------------------------------
-       // Alarmzeit
+       // Alarm Time to set unarmed
        //-----------------------------------------------------------
-       if(mintimer >= 1) {
+       if((mintimer >= ALARMTIME) && armed && alarmactive) {
            set_unarmed();
            barrier = false;
        }
        //-----------------------------------------------------------
+       // Buzzeralarm
+       //-----------------------------------------------------------
+       if(armed && alarmactive) {
+           OUT_BUZZER->setValue(high);
+           usleep(250000);
+           OUT_BUZZER->setValue(low);
+           usleep(250000);
+       }
+       //-----------------------------------------------------------
        // Scharfschalter Einlesen
        //-----------------------------------------------------------
-       if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)) && !armed)  {
-           if(!alarmactive) set_armed();
+//       if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)) && !armed)  {
+       if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
+           set_armed();
            barrier = false;
        }
        //-----------------------------------------------------------
        // Unscharfschalter Einlesen
        //-----------------------------------------------------------
-       if(((IN_UNSCHARF->getNumericValue() == high) || !(CTRLFILE->armed_from_file)) && armed)  {
+//       if(((IN_UNSCHARF->getNumericValue() == high) || !(CTRLFILE->armed_from_file)) && armed)  {
+       if(((IN_UNSCHARF->getNumericValue() == high) || !(CTRLFILE->armed_from_file)))  {
            set_unarmed();
        }
    }

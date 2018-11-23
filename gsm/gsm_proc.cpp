@@ -42,7 +42,7 @@ FONA FONA1;
           // check rssi only when live is true
           if(FONA1.fonalive)  rssitimer++;
        }
-       // sharp-signal from mainthread, read files on every going "sharp"
+       // armed-signal from mainthread, read files on every going "armed"
        if(armed && !status) {
            // read credit
            FONA1.CreditCheck();

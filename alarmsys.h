@@ -21,10 +21,10 @@
 #include "blacklib/BlackLib.h"
 #include "blacklib/BlackUART/BlackUART.h"
 #include "blacklib/BlackGPIO/BlackGPIO.h"
-#include "fona.h"
-#include "gsm_proc.h"
-#include "serialrelais.h"
-#include "ain_proc.h"
+#include "gsm/fona.h"
+#include "gsm/gsm_proc.h"
+#include "relais/serialrelais.h"
+#include "analog/ain_proc.h"
 #include "files/ctrlfile.h"
 //#include "logger/logger.h"
 
@@ -36,14 +36,19 @@ extern bool sendsms;
 extern bool armed;
 extern bool alarmactive;
 
-extern BlackGPIO  *OUT_BUZZER;
-extern BlackGPIO  *OUT_LED;
+extern BlackGPIO     *OUT_BUZZER;
+extern BlackGPIO     *OUT_LED;
 // INPUTS
-extern BlackGPIO  *IN_SCHARF;
-extern BlackGPIO  *IN_UNSCHARF;
+extern BlackGPIO    *IN_SCHARF;
+extern BlackGPIO    *IN_UNSCHARF;
 // FILES
-//!!extern ctrlfile   *CTRLFILE;
+extern ctrlfile     *CTRLFILE;
+// RELAIS
+extern serialrelais *RELAIS;
+
 #define ON  true
 #define OFF false
+// Alarmtime in minutes
+#define ALARMTIME 1
 
 #endif /* ALARMSYS_H_ */

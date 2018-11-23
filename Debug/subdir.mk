@@ -4,34 +4,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../ain_proc.cpp \
-../alarmsys.cpp \
-../fona.cpp \
-../gsm_proc.cpp \
-../ntpserver.cpp \
-../rtc.cpp \
-../serialrelais.cpp \
-../xbee.cpp 
+../alarmsys.cpp 
 
 OBJS += \
-./ain_proc.o \
-./alarmsys.o \
-./fona.o \
-./gsm_proc.o \
-./ntpserver.o \
-./rtc.o \
-./serialrelais.o \
-./xbee.o 
+./alarmsys.o 
 
 CPP_DEPS += \
-./ain_proc.d \
-./alarmsys.d \
-./fona.d \
-./gsm_proc.d \
-./ntpserver.d \
-./rtc.d \
-./serialrelais.d \
-./xbee.d 
+./alarmsys.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

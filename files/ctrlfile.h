@@ -14,7 +14,7 @@
 #define MAX_NUM       5
 #define MAX_MSG       5
 #define MAXLINES     10
-#define MAX_LINE_LEN 50
+#define MAX_LINE_LEN  5
 #define MAX_NUM_LEN  50
 #define MAX_MSG_LEN  50
 // TYPEDEFS
@@ -47,6 +47,7 @@ typedef struct {
     bool   account;
     float  umin;
     float  umax;
+    float  ucurr;
 } s_linestxt;
 typedef struct {
     s_linestxt l[MAXLINES];

@@ -14,9 +14,9 @@
 #include <string>
 #include <iostream>
 // INCLUDE PROGRAM
-#include "alarmsys.h"
-#include "files/ctrlfile.h"
-#include "blacklib/BlackADC/BlackADC.h"
+#include "../alarmsys.h"
+#include "../files/ctrlfile.h"
+#include "../blacklib/BlackADC/BlackADC.h"
 // NAMESPACES
 using namespace std;
 using namespace BlackLib;

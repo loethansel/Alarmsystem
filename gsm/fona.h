@@ -19,8 +19,10 @@
 #include <unistd.h>
 #include <signal.h>
 #include <pthread.h>
-#include "blacklib/BlackLib.h"
-#include "blacklib/BlackUART/BlackUART.h"
+#include "../blacklib/BlackLib.h"
+#include "../blacklib/BlackUART/BlackUART.h"
+#include "../files/ctrlfile.h"
+#include "../alarmsys.h"
 // NAMESPACES
 using namespace std;
 using namespace BlackLib;
