@@ -67,7 +67,7 @@ const string Logger::currentDateTime() {
     tm = localtime(&tmnow.tv_sec);
     strftime(buf,30,"%Y-%m-%d.%X", tm);
     strcat(buf,".");
-    sprintf(usec_buf,"%d",milli);
+    sprintf(usec_buf,"%03d",milli);
     strcat(buf,usec_buf);
 
     return buf;
@@ -92,7 +92,7 @@ void Logger::Write(Priority priority, const string& message, const char* str, co
                 << PRIORITY_NAMES[priority]
                 << "] ["
                 << filename <<"::" << str << "]"
-                << ":\t"
+                << ":  "
                 << message
                 << endl;
         cout  << currentDateTime()
