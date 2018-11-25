@@ -1,6 +1,12 @@
 #include "logger.h"
 
 #include <mutex>
+#include <stdio.h>
+#include <time.h>
+#include <sys/time.h>
+#include <stdio.h>
+#include <string.h>
+
 
 using namespace std;
 using namespace logger;
@@ -53,11 +59,16 @@ void Logger::Stop()
 }
 // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
 const string Logger::currentDateTime() {
-    time_t     now = time(0);
-    struct tm  tstruct;
-    char       buf[80];
-    tstruct = *localtime(&now);
-    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+    struct timeval tmnow;
+    struct tm *tm;
+    char buf[30], usec_buf[6];
+    gettimeofday(&tmnow, NULL);
+    int milli = (int)tmnow.tv_usec / 1000;
+    tm = localtime(&tmnow.tv_sec);
+    strftime(buf,30,"%Y-%m-%d.%X", tm);
+    strcat(buf,".");
+    sprintf(usec_buf,"%d",milli);
+    strcat(buf,usec_buf);
 
     return buf;
 }
