@@ -43,33 +43,6 @@ ctrlfile     *CTRLFILE;
 INIParser    *INIFILE;
 serialrelais *RELAIS;
 
-//---------------------------------------------------------------------------
-// function: DebugOut
-//---------------------------------------------------------------------------
-// getestet & ok
-//---------------------------------------------------------------------------
-void DebugOut(const char *string,unsigned int value,unsigned char valout)
-{
-#if(DEBUG == 1)
-   if(valout) {
-       std::cout << string << std::hex << value << std::endl;
-   } else {
-       std::cout << string << std::endl;
-   }
-#endif
-}
-
-//---------------------------------------------------------------------------
-// function: WriteLog
-//---------------------------------------------------------------------------
-// getestet & ok
-//---------------------------------------------------------------------------
-
-//---------------------------------------------------------------------------
-// EXIT Function
-//---------------------------------------------------------------------------
-// getestet & ok
-//---------------------------------------------------------------------------
 void termination_handler(int sig)
 {
    Logger::Write(Logger::INFO, "Main: Caught Signal: ");// << sig);
@@ -204,7 +177,7 @@ bool   retval;
    uint8_t      version;
    version      = RELAIS->getFirmwareVersion();
    switch_relais(OFF);
-   if(version == 0) cout << "Relaisausgänge arbeiten nicht!" << endl;
+   if(version == 0) Logger::Write(Logger::ERROR, "Relaisausgänge arbeiten nicht!");
    // END RELAIS
 
    output_evt = 0;
@@ -282,7 +255,7 @@ int main()
 {
 
     Logger::Start(Logger::DEBUG, "/home/debian/Alarmsystem/logs/alarm.log");
-    Logger::Write(Logger::INFO, "This message comes from task1");
+    Logger::Write(Logger::INFO, "initializing Alarmsystem");
 
 struct sigaction action;
 int    retval;
@@ -307,12 +280,16 @@ int    retval;
         CTRLFILE->CreateDefaultIniFile();
     }
 
+    Logger::Write(Logger::INFO, "reading INI");
     // read inputfiles
-    if(!CTRLFILE->ReadFiles())  { cout << "couldt not read controlfiles => exit"  << endl; return 0; }
+    if(!CTRLFILE->ReadFiles())
+    { Logger::Write(Logger::ERROR, "could not read controlfiles => exit"); return 0; }
+    Logger::Write(Logger::INFO, "writing INI");
     // write ctrlfiles
-    if(!CTRLFILE->WriteFiles()) { cout << "couldt not write controlfiles => exit" << endl; return 0; }
+    if(!CTRLFILE->WriteFiles()) { Logger::Write(Logger::ERROR, "could not write controlfiles => exit"); return 0; }
+    Logger::Write(Logger::INFO, "intialize tasks");
     // TASKS
-    if(!init_tasks())           { cout << "error while creating tasks => exit" << endl; return 0; };
+    if(!init_tasks())           { Logger::Write(Logger::ERROR, "error while creating tasks => exit"); return 0; };
     // first Logmessage
     return 0;
 }
