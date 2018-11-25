@@ -20,7 +20,7 @@ public:
     static void Start(Priority minPriority, const string& logFile);
     static void Stop();
     // write message
-    static void Write(Priority priority, const string& message);
+    static void Write(Priority priority, const string& message, const char* str = __builtin_FUNCTION(), const char* file = __PRETTY_FUNCTION__);
     static const std::string currentDateTime() ;
     static Logger* Instance();
 private:

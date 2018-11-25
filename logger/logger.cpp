@@ -16,30 +16,35 @@ const string Logger::PRIORITY_NAMES[] =
     "WARNING",
     "ERROR"
 };
-Logger* Logger::instance = NULL;
 Logger* Logger::Instance()
 {
-    if (!instance)   // Only allow one instance of class to be generated.
+    if (!instance){   // Only allow one instance of class to be generated.
         instance = new Logger;
+    }
     return instance;
 }
+Logger* Logger::instance = Logger::Instance();
+
 Logger::Logger() : active(false)
 {
+    if (instance)
     instance->minPriority = INFO;
 }
 
 void Logger::Start(Priority minPriority, const string& logFile)
 {
+    if (instance)
     instance->active = true;
     instance->minPriority = minPriority;
     if (logFile != "")
     {
-        instance->fileStream.open(logFile.c_str(), ofstream::trunc);
+        instance->fileStream.open(logFile.c_str(), ofstream::app);
     }
 }
 
 void Logger::Stop()
 {
+    if (instance)
     instance->active = false;
     if (instance->fileStream.is_open())
     {
@@ -57,11 +62,15 @@ const string Logger::currentDateTime() {
     return buf;
 }
 
-void Logger::Write(Priority priority, const string& message)
+void Logger::Write(Priority priority, const string& message, const char* str, const char* file )
 {
+    if (!instance){
+        return;
+    }
     if(instance->active && priority >= instance->minPriority)
     {
         mutex m;
+        string filename(file);
 
         m.lock();
         // identify current output stream
@@ -70,11 +79,19 @@ void Logger::Write(Priority priority, const string& message)
         stream  << currentDateTime() 
                 << " [" 
                 << PRIORITY_NAMES[priority]
-                << "]" 
+                << "] ["
+                << filename <<"::" << str << "]"
                 << ":\t"
                 << message
                 << endl;
-
+        cout  << currentDateTime()
+                        << " ["
+                        << PRIORITY_NAMES[priority]
+                        << "] ["
+                        << filename <<"::" << str << "]"
+                        << ":\t"
+                        << message
+                        << endl;
         m.unlock();
     }
 }

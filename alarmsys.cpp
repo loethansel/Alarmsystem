@@ -80,27 +80,6 @@ void termination_handler(int sig)
    exit(0);
 }
 
-//---------------------------------------------------------------------------
-// create_logfile Function
-//---------------------------------------------------------------------------
-// getestet & ok
-//---------------------------------------------------------------------------
-void create_logfile(void)
-{
-char     timestamp[22];
-time_t   now;
-stringstream s;
-#define LOGFILENAME "alrlog_"
-
-   now = time(0);
-   strftime(timestamp, 22, "%Y%m%d%H%M%S", localtime(&now));
-   s << LOGFILENAME << timestamp << ".txt";
-   ofs.open (string(s.str()));
-   // Logfile Output umleiten
-   clog.rdbuf(ofs.rdbuf());
-   Logger::Write(Logger::INFO, "AL_main: Logfile Created!");
-}
-
 void init_system(void)
 {
     // INPUTS
@@ -117,7 +96,7 @@ void init_system(void)
     CTRLFILE = new ctrlfile;
     // RELAIS
     RELAIS   = new serialrelais;
-    INIFILE  = new INIParser;
+//    INIFILE  = new ctrlfile;
 
 
 
@@ -302,7 +281,7 @@ bool   retval;
 int main()
 {
 
-    Logger::Start(Logger::DEBUG, "/Users/d042762/a.log");
+    Logger::Start(Logger::DEBUG, "/home/debian/Alarmsystem/logs/alarm.log");
     Logger::Write(Logger::INFO, "This message comes from task1");
 
 struct sigaction action;
@@ -320,14 +299,12 @@ int    retval;
     sigaction (SIGTERM, &action, NULL);
     sigaction (SIGINT,  &action, NULL);
 
-    // Logfile
-    create_logfile();
     // IO'S, FILES CLASSES
     init_system();
     // Write Inifile first
-    retval =  INIFILE->WriteINI(INIFILENAME);
+    retval =  CTRLFILE->WriteINI(INIFILENAME);
     if(retval) {
-
+        CTRLFILE->CreateDefaultIniFile();
     }
 
     // read inputfiles
