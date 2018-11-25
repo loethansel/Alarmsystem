@@ -44,7 +44,7 @@ extern BlackGPIO    *IN_SCHARF;
 extern BlackGPIO    *IN_UNSCHARF;
 // FILES
 extern ctrlfile     *CTRLFILE;
-extern INIParser    *INIFILE;
+//extern INIParser    *INIFILE;
 // RELAIS
 extern serialrelais *RELAIS;
 

@@ -228,11 +228,6 @@ bool   retval;
    if(version == 0) cout << "Relaisausgänge arbeiten nicht!" << endl;
    // END RELAIS
 
-   // INIFILETEST
-   retval       = INIFILE->ReadINI("/home/debian/Alarmsystem/configfiles/config.ini");
-   autoalarmstr = INIFILE->GetValue("ALARM","autoalarm");
-   alarmtime    = INIFILE->GetValue("ALARM","alarmtime");
-
    output_evt = 0;
    while(1) {
        //-----------------------------------------------------------
@@ -311,6 +306,7 @@ int main()
     Logger::Write(Logger::INFO, "This message comes from task1");
 
 struct sigaction action;
+int    retval;
 
     program_end = false;
     sendsms     = false;
@@ -328,6 +324,12 @@ struct sigaction action;
     create_logfile();
     // IO'S, FILES CLASSES
     init_system();
+    // Write Inifile first
+    retval =  INIFILE->WriteINI(INIFILENAME);
+    if(retval) {
+
+    }
+
     // read inputfiles
     if(!CTRLFILE->ReadFiles())  { cout << "couldt not read controlfiles => exit"  << endl; return 0; }
     // write ctrlfiles

@@ -257,7 +257,7 @@ stringstream rd;
 stringstream wr;
 int i;
 int retval;
-char  number[50];
+//char  number[50];
 
        // check the module with some AT\r commands
        if(!LiveCheck()) return false;

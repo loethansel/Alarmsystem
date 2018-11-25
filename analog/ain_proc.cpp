@@ -9,13 +9,14 @@
 // GLOBALVARS
 pthread_t aintask;
 
+
 // AINTASK
 void *AinTask(void *value)
 {
 static  clock_t output_evt,tmeas_now;
-bool    ledon = false;
+//bool    ledon = false;
 string  valueStr;
-int     valueInt;
+//int     valueInt;
 float   valueFloat[4];
 int     i;
 int     maxline;
@@ -51,7 +52,7 @@ typedef struct {
           valueFloat[2] = analog2.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
           valueFloat[3] = analog3.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
           // copy the file readed maxlines cnt
-          maxline = CTRLFILE->lines.cnt;
+          maxline = stoi(CTRLFILE->ini.ALARM_LINE.cnt);
           // chek the value and correct
           if(maxline > MAXLINE) maxline = MAXLINE;
           // Read all the lines to maxline
@@ -59,11 +60,12 @@ typedef struct {
               // Values to standard out
               cout << "LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[i] << endl;
               // copy value for application
-              CTRLFILE->lines.l[i].ucurr = valueFloat[i];
+              //CTRLFILE->ini.lines.lineactive[i] = valueFloat[i];
               // check if value is off-limit
-              if((valueFloat[i] >= CTRLFILE->lines.l[i].umax) || (valueFloat[i] <= CTRLFILE->lines.l[i].umin)) {
+              if((valueFloat[i] >= stof(CTRLFILE->ini.ALARM_LINE.lineumax[i])) || (valueFloat[i] <= stof(CTRLFILE->ini.ALARM_LINE.lineumax[i]))) {
                   // set alarm if line is permitted
-                  if(CTRLFILE->lines.l[i].account) alarmactive = true;
+                  if(CTRLFILE->ini.ALARM_LINE.lineactive[i].at(0) == '1') alarmactive = true;
+                  //if(CTRLFILE->ini.lines.lineactive[i]) alarmactive = true;
                   // TODO: Werte ins Logfile
               }
           }

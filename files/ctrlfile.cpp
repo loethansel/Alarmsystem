@@ -15,13 +15,57 @@ ctrlfile::ctrlfile(void)
    armed_from_file = false;
 }
 
+bool ctrlfile::CreateDefaultIniFile()
+{
+    SetValue("LOGLEVEL", "LOGDEBUG", "false");
+    SetValue("ADDRESS", "standort", "Flugschule");
+    SetValue("ADRESS", "strasse", "Flugplatzstrasse");
+    SetValue("ADRESS", "hausnummer", "3");
+    SetValue("ADRESS", "stadt", "Fehrbellin");
+    SetValue("ADRESS", "plz", "16833");
+    SetValue("ALARM", "autoalarm", "false");
+    SetValue("ALARM", "autocnt", "0");
+    SetValue("ALARM", "alarmtime", "20");
+    SetValue("ALARM", "alarmtext", "Flugschule/gruene Halle");
+    SetValue("ALARM_LINE", "lineactive", "false");
+    SetValue("ALARM_LINE", "lineumax", "false");
+    SetValue("ALARM_LINE", "lineumin", "false");
+    SetValue("ALARM_LINE", "linetext", "false");
+    SetValue("ALARM_LINE", "cnt", "false");
+    SetValue("NETWORK", "protocol", "false");
+    SetValue("GSM", "livetimer", "false");
+    SetValue("GSM", "rssitimer", "false");
+    SetValue("GSM", "livedeadtime", "false");
+    SetValue("GSM", "rssideadtime", "false");
+    SetValue("GSM", "creditwarnlevel", "false");
+    SetValue("TEL_NUM", "number", "false");
+    SetValue("TEL_NUM", "name", "false");
+    SetValue("OUT_ACTIVE", "outactive", "false");
+    SetValue("EMAIL", "alarmmail", "false");
+    SetValue("EMAIL", "servicemail", "false");
+
+
+    return true;
+}
+
 // Reads all files in the system
 bool ctrlfile::ReadFiles(void)
 {
-   if(!ReadAlarmNumbers()) return false;
-   if(!ReadAlarmMsg())     return false;
+bool retval;
+string autoalarmstr;
+string alarmtime;
+
+    // INIFILETEST
+    retval  = ReadINI(INIFILENAME);
+    if(retval) {
+        autoalarmstr = GetValue("ALARM","autoalarm");
+        alarmtime    = GetValue("ALARM","alarmtime");
+    }
+
+//   if(!ReadAlarmNumbers()) return false;
+//   if(!ReadAlarmMsg())     return false;
    if(!ReadSystemArmed())  return false;
-   if(!ReadLines())        return false;
+//   if(!ReadLines())        return false;
    return true;
 }
 
@@ -84,7 +128,7 @@ bool       readval;
    armed_from_file = readval;
    return true;
 }
-
+/*
 
 // Reads the file with Alarm numbers
 bool ctrlfile::ReadAlarmNumbers(void)
@@ -193,12 +237,13 @@ int pos_a, pos_b, pos_c;
    msgfile.close();
    return true;
 }
+*/
 
 ctrlfile::~ctrlfile(void)
 {
 	ctrlfile::WriteFiles();
 }
-
+/*
 
 // Reads the file with Alarm numbers
 bool ctrlfile::ReadLines(void)
@@ -260,37 +305,7 @@ int pos_a, pos_b, pos_c, pos_d;
    linefile.close();
    return true;
 }
-
-
-
-bool ctrlfile::ReadInifile(void)
-{
-	return true;
-/*
-    char BUFFER01[100];
-    char BUFFER02[100];
-    char szIniFile[MAX_PATH];
-
-    //Speichert die ini Datei im selben Verzeichnis wie Die Exe
-    GetModuleFileName(NULL,szIniFile,sizeof(szIniFile));
-    *(strrchr(szIniFile,'\\')+1) = 0;
-    lstrcat(szIniFile,"test.ini");
-
-    //WritePrivateProfileString Schreibt informationen in eine INI Datei
-    WritePrivateProfileString("EINSTELLUNGEN" , "WERT01" , "Test-01" , szIniFile);
-    WritePrivateProfileString("EINSTELLUNGEN" , "WERT02" , "Test-02" , szIniFile);
-
-    //GetPrivateProfileString Liesst die informationen aus der INI Datei
-    GetPrivateProfileString("EINSTELLUNGEN", "WERT01" , "Test-Fehler" , BUFFER01, sizeof(szIniFile), szIniFile);
-    GetPrivateProfileString("EINSTELLUNGEN", "WERT02" , "Test-Fehler" , BUFFER02, sizeof(szIniFile), szIniFile);
-
-    //Dateien aus INI Laden
-    printf("%s\n","[EINSTELLUNGEN]");
-    printf("%s\n", BUFFER01);
-    printf("%s\n", BUFFER02);
-    printf("%s\n","..");
 */
-}
 
 
 
