@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 using namespace std;
-
+namespace logger {
 class Logger
 {
 public:
@@ -22,6 +22,7 @@ public:
     // write message
     static void Write(Priority priority, const string& message);
     static const std::string currentDateTime() ;
+    static Logger* Instance();
 private:
     // Logger adheres to the singleton design pattern, hence the private
     // constructor, copy constructor and assignment operator.
@@ -35,20 +36,8 @@ private:
     // names describing the items in enum Priority
     static const string PRIORITY_NAMES[];
     // the sole Logger instance (singleton)
-    static Logger instance;
+    static Logger* instance;
 };
 
 
-// --------------------------------------
-// static members initialization
-// --------------------------------------
-
-const string Logger::PRIORITY_NAMES[] =
-{
-    "DEBUG",
-    "INFO",
-    "WARNING",
-    "ERROR"
-};
-
-Logger Logger::instance;
+}

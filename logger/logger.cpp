@@ -3,33 +3,47 @@
 #include <mutex>
 
 using namespace std;
-mutex m;
+using namespace logger;
+
 
 // --------------------------------------
 // function implementations
 // --------------------------------------
-
+const string Logger::PRIORITY_NAMES[] =
+{
+    "DEBUG",
+    "INFO",
+    "WARNING",
+    "ERROR"
+};
+Logger* Logger::instance = NULL;
+Logger* Logger::Instance()
+{
+    if (!instance)   // Only allow one instance of class to be generated.
+        instance = new Logger;
+    return instance;
+}
 Logger::Logger() : active(false)
 {
-	instance.minPriority = INFO;
+    instance->minPriority = INFO;
 }
 
 void Logger::Start(Priority minPriority, const string& logFile)
 {
-    instance.active = true;
-    instance.minPriority = minPriority;
+    instance->active = true;
+    instance->minPriority = minPriority;
     if (logFile != "")
     {
-        instance.fileStream.open(logFile.c_str(), ofstream::trunc);
+        instance->fileStream.open(logFile.c_str(), ofstream::trunc);
     }
 }
 
 void Logger::Stop()
 {
-    instance.active = false;
-    if (instance.fileStream.is_open())
+    instance->active = false;
+    if (instance->fileStream.is_open())
     {
-        instance.fileStream.close();
+        instance->fileStream.close();
     }
 }
 // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
@@ -45,11 +59,13 @@ const string Logger::currentDateTime() {
 
 void Logger::Write(Priority priority, const string& message)
 {
-    if(instance.active && priority >= instance.minPriority)
+    if(instance->active && priority >= instance->minPriority)
     {
+        mutex m;
+
         m.lock();
         // identify current output stream
-        ostream& stream = instance.fileStream.is_open() ? instance.fileStream : cout;
+        ostream& stream = instance->fileStream.is_open() ? instance->fileStream : cout;
 
         stream  << currentDateTime() 
                 << " [" 

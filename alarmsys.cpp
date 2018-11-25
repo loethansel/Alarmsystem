@@ -3,15 +3,18 @@
 // INCLUDE
 //---------------------------------------------------------------------------
 #include "alarmsys.h"
+#include "logger/logger.h"
+
 //---------------------------------------------------------------------------
 // USING NAMESPACE
 //---------------------------------------------------------------------------
 using namespace std;
 using namespace BlackLib;
+using namespace logger;
 //---------------------------------------------------------------------------
 // GLOBAL Defines
 //---------------------------------------------------------------------------
-#define DEBUG 1
+//#define DEBUG 1
 //---------------------------------------------------------------------------
 // GLOBAL Declarations
 //---------------------------------------------------------------------------
@@ -61,38 +64,6 @@ void DebugOut(const char *string,unsigned int value,unsigned char valout)
 //---------------------------------------------------------------------------
 // getestet & ok
 //---------------------------------------------------------------------------
-void WriteLog(const char *string,unsigned int value,unsigned char valout)
-{
-// specifies the position of colon from the left
-char         timestamp[22];
-int          pos1;
-time_t       now;
-stringstream s,s1;
-std::string  str;
-#define DISTFROMLEFT 8
-
-   now = time(0);
-   strftime(timestamp, 22, "%d.%m.%Y-%H:%M:%S", localtime(&now));
-   // formatting string "file   :"
-   s << string;
-   str = s.str();
-   pos1 = str.find(':');
-   if((pos1 < DISTFROMLEFT) && (pos1 > 0)) {
-       str.insert(pos1,"        ",DISTFROMLEFT-pos1);
-   }
-   // Output to Logfile
-   if(valout) {
-       std::clog << timestamp << "  " << str << std::hex << value << std::endl;
-   } else {
-       std::clog << timestamp << "  " << str << std::endl;
-   }
-   // Output to Console
-   s1 << timestamp << "  " << str;
-   const std::string tmp = s1.str();
-   const char* cstr      = tmp.c_str();
-   DebugOut(cstr,value,valout);
-}
-
 
 //---------------------------------------------------------------------------
 // EXIT Function
@@ -101,9 +72,9 @@ std::string  str;
 //---------------------------------------------------------------------------
 void termination_handler(int sig)
 {
-   WriteLog("Main: Caught Signal: ",sig,true);
+   Logger::Write(Logger::INFO, "Main: Caught Signal: ");// << sig);
    // Logfile last Output
-   WriteLog("Main: close logfile..........",sig,true);
+   Logger::Write(Logger::INFO, "Main: close logfile..........");// << sig);
    // close Logfile
    ofs.close();
    exit(0);
@@ -127,17 +98,17 @@ stringstream s;
    ofs.open (string(s.str()));
    // Logfile Output umleiten
    clog.rdbuf(ofs.rdbuf());
-   WriteLog("AL_main: Logfile Created!",0,false);
+   Logger::Write(Logger::INFO, "AL_main: Logfile Created!");
 }
 
 void init_system(void)
 {
     // INPUTS
-    WriteLog("Main: Input GPIO's exported to /sys/class/gpio",0,false);
+    Logger::Write(Logger::INFO, "Main: Input GPIO's exported to /sys/class/gpio");
     IN_SCHARF   = new BlackGPIO(BlackLib::GPIO_50 ,BlackLib::input); // P9.14
     IN_UNSCHARF = new BlackGPIO(BlackLib::GPIO_51 ,BlackLib::input); // P9.16
     // OUTPUTS
-    WriteLog("Main: Output GPIO's exported to /sys/class/gpio",0,false);
+    Logger::Write(Logger::INFO, "Main: Output GPIO's exported to /sys/class/gpio");
     OUT_BUZZER = new BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode);  // P9.25
     OUT_BUZZER->setValue(low);
     OUT_LED    = new BlackGPIO(BlackLib::GPIO_115,BlackLib::output,BlackLib::FastMode); // P9.27
@@ -205,7 +176,7 @@ void set_armed(void)
 int i;
     // only set to armed if not alarm line is active or armed yet
     if(armed || alarmactive) return;
-    WriteLog("AL_main: Alarmanlage scharf geschaltet!",0,false);
+    Logger::Write(Logger::INFO, "AL_main: Alarmanlage scharf geschaltet!");
     armed  = true;
     CTRLFILE->WriteSystemArmed(true);
     OUT_LED->setValue(high);
@@ -224,7 +195,7 @@ int i;
 void set_unarmed(void)
 {
     if(!armed) return;
-    WriteLog("AL_main: Alarmanlage unscharf geschaltet!",0,false);
+    Logger::Write(Logger::INFO, "AL_main: Alarmanlage unscharf geschaltet!");
     armed       = false;
     alarmactive = false;
     switch_relais(OFF);
@@ -335,6 +306,10 @@ bool   retval;
 //---------------------------------------------------------------------------
 int main()
 {
+
+    Logger::Start(Logger::DEBUG, "/Users/d042762/a.log");
+    Logger::Write(Logger::INFO, "This message comes from task1");
+
 struct sigaction action;
 
     program_end = false;

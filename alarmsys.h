@@ -37,8 +37,8 @@ extern bool sendsms;
 extern bool armed;
 extern bool alarmactive;
 
-extern BlackGPIO     *OUT_BUZZER;
-extern BlackGPIO     *OUT_LED;
+extern BlackGPIO    *OUT_BUZZER;
+extern BlackGPIO    *OUT_LED;
 // INPUTS
 extern BlackGPIO    *IN_SCHARF;
 extern BlackGPIO    *IN_UNSCHARF;
