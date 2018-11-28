@@ -27,7 +27,8 @@
 #include "analog/ain_proc.h"
 #include "files/ctrlfile.h"
 #include "files/iniparser.h"
-//#include "logger/logger.h"
+#include "radio/xbee.h"
+#include "email/email.h"
 
 using namespace std;
 using namespace BlackLib;
@@ -36,6 +37,7 @@ using namespace BlackLib;
 extern bool sendsms;
 extern bool armed;
 extern bool alarmactive;
+extern bool program_end;
 
 extern BlackGPIO    *OUT_BUZZER;
 extern BlackGPIO    *OUT_LED;
@@ -44,9 +46,13 @@ extern BlackGPIO    *IN_SCHARF;
 extern BlackGPIO    *IN_UNSCHARF;
 // FILES
 extern ctrlfile     *CTRLFILE;
-//extern INIParser    *INIFILE;
 // RELAIS
 extern serialrelais *RELAIS;
+// I2C-RELAIS
+extern xbee         *RADIORELAIS;
+// EMAIL
+extern email        *EMAILALARM;
+
 
 #define ON  true
 #define OFF false

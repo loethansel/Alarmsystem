@@ -14,12 +14,22 @@
 using namespace std;
 using namespace BlackLib;
 
+/*
+ https://www.digi.com/blog/tag/xbee-pro/
+ Switch Base to API-Mode AP=1
+ Configure Remote D4=4
+ Frame-Tool:
+ MACID-Remote: 0013A200418259D5
+ D4 AUS: 7E 00 10 17 01 00 13 A2 00 41 82 59 D5 FF FE 02 44 34 04 C6
+ D4 AN : 7E 00 10 17 01 00 13 A2 00 41 82 59 D5 FF FE 02 44 34 04 C6
+ */
 
-class XBEE : public BlackUART
+class xbee : public BlackUART
 {
 public:
-	XBEE();
-	virtual ~XBEE();
+	xbee();
+	bool switch_xbee(bool state);
+	virtual ~xbee();
 };
 
 #endif /* XBEE_H_ */

@@ -14,6 +14,7 @@ RM := rm -rf
 -include logger/subdir.mk
 -include gsm/subdir.mk
 -include files/subdir.mk
+-include email/subdir.mk
 -include driver/subdir.mk
 -include blacklib/Release/BlackUART/subdir.mk
 -include blacklib/Release/BlackTime/subdir.mk

@@ -70,6 +70,7 @@ blacklib/Release/BlackThread \
 blacklib/Release/BlackTime \
 blacklib/Release/BlackUART \
 driver \
+email \
 files \
 gsm \
 logger \

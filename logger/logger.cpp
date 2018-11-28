@@ -95,6 +95,7 @@ void Logger::Write(Priority priority, const string& message, const char* str, co
                 << ":  "
                 << message
                 << endl;
+        /*
         cout  << currentDateTime()
                         << " ["
                         << PRIORITY_NAMES[priority]
@@ -103,6 +104,7 @@ void Logger::Write(Priority priority, const string& message, const char* str, co
                         << ":\t"
                         << message
                         << endl;
+        */
         m.unlock();
     }
 }

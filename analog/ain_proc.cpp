@@ -5,7 +5,19 @@
  *      Author: Pandel
  */
 // INCLUDES
+#include <fstream>
+#include <string>
+#include <iostream>
+#include <sstream>
+
 #include "ain_proc.h"
+#include "../logger/logger.h"
+//---------------------------------------------------------------------------
+// USING NAMESPACE
+//---------------------------------------------------------------------------
+using namespace std;
+using namespace BlackLib;
+using namespace logger;
 // GLOBALVARS
 pthread_t aintask;
 
@@ -14,16 +26,18 @@ pthread_t aintask;
 void *AinTask(void *value)
 {
 static  clock_t output_evt,tmeas_now;
-//bool    ledon = false;
-string  valueStr;
-//int     valueInt;
 float   valueFloat[4];
+stringstream ss;
+string       s;
 int     i;
-int     maxline;
-BlackLib::BlackADC analog0(BlackLib::AIN0 );
-BlackLib::BlackADC analog1(BlackLib::AIN1 );
-BlackLib::BlackADC analog2(BlackLib::AIN2 );
-BlackLib::BlackADC analog3(BlackLib::AIN3 );
+int     seccnt;
+bool    active[MAXLINE];
+float   umin, umax;
+// Analg Input Declaration
+BlackADC analog0(BlackLib::AIN0 );
+BlackADC analog1(BlackLib::AIN1 );
+BlackADC analog2(BlackLib::AIN2 );
+BlackADC analog3(BlackLib::AIN3 );
 
 //   fptr_t  analogfkt[4];
 //   analogfkt[0] = analog0.getConvertedValue;
@@ -38,35 +52,55 @@ typedef struct {
     int    cnt;
 } s_lines;
 */
-
+   //Logger::Write(Logger::INFO,teststr);
    output_evt = 0;
-
+   seccnt     = 0;
    while(1) {
+       // INTERES SIGNAL PRGRAM END!!
+       if(program_end) break;
        // second clock for time dependent functions
        tmeas_now = clock() / CLOCKS_PER_SEC;
        if(tmeas_now >= (output_evt +1) ) {
           output_evt = clock() / CLOCKS_PER_SEC;
-
           valueFloat[0] = analog0.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
           valueFloat[1] = analog1.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
           valueFloat[2] = analog2.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
           valueFloat[3] = analog3.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
-          // copy the file readed maxlines cnt
-          maxline = stoi(CTRLFILE->ini.ALARM_LINE.cnt);
-          // chek the value and correct
-          if(maxline > MAXLINE) maxline = MAXLINE;
+          // Check if line is active
+          for(i=0;i<MAXLINE;i++) {
+              if(CTRLFILE->ini.ALARM_LINE.lineactv[i] == "true") active[i] = true;
+              else active[i] = false;
+          }
+          // log the analog values every hour
+          if(seccnt++>= 3600) {
+             for(i=0;i<MAXLINE;i++) {
+                 if(active[i]) {
+                    s = ss.str();
+                    Logger::Write(Logger::DEBUG,s);
+                 }
+             }
+             seccnt = 0;
+          }
           // Read all the lines to maxline
-          for(i=0;i<maxline;i++) {
+          for(i=0;i<MAXLINE;i++) {
               // Values to standard out
               cout << "LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[i] << endl;
-              // copy value for application
-              //CTRLFILE->ini.lines.lineactive[i] = valueFloat[i];
               // check if value is off-limit
-              if((valueFloat[i] >= stof(CTRLFILE->ini.ALARM_LINE.lineumax[i])) || (valueFloat[i] <= stof(CTRLFILE->ini.ALARM_LINE.lineumax[i]))) {
+              umin = stof(CTRLFILE->ini.ALARM_LINE.lineumin[i]);
+              umax = stof(CTRLFILE->ini.ALARM_LINE.lineumax[i]);
+              if((valueFloat[i] >= umax) || (valueFloat[i] <= umin)) {
                   // set alarm if line is permitted
-                  if(CTRLFILE->ini.ALARM_LINE.lineactive[i].at(0) == '1') alarmactive = true;
-                  //if(CTRLFILE->ini.lines.lineactive[i]) alarmactive = true;
-                  // TODO: Werte ins Logfile
+                  if(active[i]) {
+                      alarmactive = true;
+                      // LOGGER!!!!!
+                      /*
+                      ss.clear();
+                      ss << "LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[0] << endl;
+                      s.clear();
+                      s = ss.str();
+                      Logger::Write(Logger::INFO,s);
+                      */
+                  }
               }
           }
        }

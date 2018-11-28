@@ -33,6 +33,8 @@ FONA FONA1;
    output_evt = 0;
 
    while(1) {
+       // INTERES SIGNAL PRGRAM END!!
+       if(program_end) break;
 	   // second clock for time dependent functions
        tmeas_now = clock() / CLOCKS_PER_SEC;
        if(tmeas_now >= (output_evt+1) ) {

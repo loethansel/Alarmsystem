@@ -14,7 +14,6 @@ using namespace logger;
 //---------------------------------------------------------------------------
 // GLOBAL Defines
 //---------------------------------------------------------------------------
-//#define DEBUG 1
 //---------------------------------------------------------------------------
 // GLOBAL Declarations
 //---------------------------------------------------------------------------
@@ -40,17 +39,60 @@ BlackGPIO    *IN_SCHARF;
 BlackGPIO    *IN_UNSCHARF;
 // FILES
 ctrlfile     *CTRLFILE;
-INIParser    *INIFILE;
+// I2C-RELAIS
 serialrelais *RELAIS;
+// I2C-RELAIS
+xbee         *RADIORELAIS;
+// EMAIL
+email        *EMAILALARM;
 
 void termination_handler(int sig)
 {
-   Logger::Write(Logger::INFO, "Main: Caught Signal: ");// << sig);
+stringstream ss;
+string        s;
+
+    ss << "Caught Signal: " << dec << sig << endl;
+    s = ss.str();
+    Logger::Write(Logger::INFO,s);
+
+   Logger::Write(Logger::INFO, "Caught Signal: ");// << sig);
    // Logfile last Output
-   Logger::Write(Logger::INFO, "Main: close logfile..........");// << sig);
+   Logger::Write(Logger::INFO, "close logfile..........");// << sig);
    // close Logfile
    ofs.close();
    exit(0);
+}
+
+// READING OR WRITING FILES
+bool file_work(void)
+{
+bool retval;
+
+    // INI-FILE
+    if(!CTRLFILE->CheckFileExists(INIFILENAME)) {
+        // Write Inifile first
+        CTRLFILE->CreateDefaultIniFile();
+        retval =  CTRLFILE->WriteINI(INIFILENAME);
+        if(retval) { Logger::Write(Logger::INFO, "Creating Default INI"); }
+        else       { Logger::Write(Logger::ERROR, "could not create Default INI"); return false; }
+    } else {
+        retval = CTRLFILE->ReadIniFile();
+        if(retval) { Logger::Write(Logger::INFO, "Reading INI File"); }
+        else       { Logger::Write(Logger::ERROR, "could not read INI File"); return false; }
+    }
+    // ACTION-CONTROL FILES
+    Logger::Write(Logger::INFO, "Read/Write Action Control-Files");
+    if(!CTRLFILE->CheckFileExists(ARMEDFILE)) {
+        retval = CTRLFILE->WriteActFiles();
+        if(retval) { Logger::Write(Logger::INFO, "Creating Controlfile"); }
+        else       { Logger::Write(Logger::ERROR,"could not create Controlfile => exit"); return false; }
+    } else {
+        // Read Action ctrlfiles
+        retval = CTRLFILE->ReadActFiles();
+        if(retval)  { Logger::Write(Logger::INFO, "Reading Controlfile"); }
+        else        { Logger::Write(Logger::ERROR,"could not read Controlfile => exit"); return false; }
+    }
+   return true;
 }
 
 void init_system(void)
@@ -61,7 +103,7 @@ void init_system(void)
     IN_UNSCHARF = new BlackGPIO(BlackLib::GPIO_51 ,BlackLib::input); // P9.16
     // OUTPUTS
     Logger::Write(Logger::INFO, "Main: Output GPIO's exported to /sys/class/gpio");
-    OUT_BUZZER = new BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode);  // P9.25
+    OUT_BUZZER = new BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode); // P9.25
     OUT_BUZZER->setValue(low);
     OUT_LED    = new BlackGPIO(BlackLib::GPIO_115,BlackLib::output,BlackLib::FastMode); // P9.27
     OUT_LED->setValue(low);
@@ -69,40 +111,60 @@ void init_system(void)
     CTRLFILE = new ctrlfile;
     // RELAIS
     RELAIS   = new serialrelais;
-//    INIFILE  = new ctrlfile;
+    // XBEE-RADIO-RELAIS
+    RADIORELAIS = new xbee;
+    // EMAILALARM
+    EMAILALARM = new email;
 
-
-
-    // out_2 = new BlackLib::BlackGPIO(BlackLib::GPIO_50 ,BlackLib::output,BlackLib::FastMode); // P9.14
-    // out_4 = new BlackLib::BlackGPIO(BlackLib::GPIO_51 ,BlackLib::output,BlackLib::FastMode); // P9.16
-    // out_5 = new BlackLib::BlackGPIO(BlackLib::GPIO_3  ,BlackLib::output,BlackLib::FastMode); // P9.21
-    // out_6 = new BlackLib::BlackGPIO(BlackLib::GPIO_2  ,BlackLib::output,BlackLib::FastMode); // P9.22
-    // in_1 = new BlackLib::BlackGPIO(BlackLib::GPIO_115,BlackLib::input); // P9.27
-    // in_2 = new BlackLib::BlackGPIO(BlackLib::GPIO_66 ,BlackLib::input); // P8.07
-    // in_3 = new BlackLib::BlackGPIO(BlackLib::GPIO_67 ,BlackLib::input); // P8.08
-    // in_4 = new BlackLib::BlackGPIO(BlackLib::GPIO_69 ,BlackLib::input); // P8.09
-    // in_5 = new BlackLib::BlackGPIO(BlackLib::GPIO_68 ,BlackLib::input); // P8.10
-    // in_6 = new BlackLib::BlackGPIO(BlackLib::GPIO_45 ,BlackLib::input); // P8.11
-    // in_7 = new BlackLib::BlackGPIO(BlackLib::GPIO_44 ,BlackLib::input); // P8.12
-    // in_8 = new BlackLib::BlackGPIO(BlackLib::GPIO_23 ,BlackLib::input); // P8.13
-    // in_9 = new BlackLib::BlackGPIO(BlackLib::GPIO_26 ,BlackLib::input); // P8.14
+    // GPIO-OVERVIEW
+    // GPIO_117 == P9.25  (OUT)
+    // GPIO_115 == P9.27  (OUT)
+    // GPIO_50  == P9.14  (OUT)
+    // GPIO_51  == P9.16  (OUT)
+    // GPIO_3   == P9.21  (OUT)
+    // GPIO_2   == P9.22  (OUT)
+    // GPIO_66  == P8.07  (IN)
+    // GPIO_67  == P8.08  (IN)
+    // GPIO_69  == P8.09  (IN)
+    // GPIO_68  == P8.10  (IN)
+    // GPIO_45  == P8.11  (IN)
+    // GPIO_44  == P8.12  (IN)
+    // GPIO_23  == P8.13  (IN)
+    // GPIO_26  == P8.14  (IN)
 }
 
 bool init_tasks(void)
-{   // Create Gsm-Task
-    if(pthread_create(&maintask, NULL,&MainTask,NULL)) return false;
-    if(pthread_create(&aintask, NULL,&AinTask,NULL))   return false;
-    if(pthread_create(&gsmtask, NULL,&GsmTask,NULL))   return false;
-    if(pthread_join(aintask,NULL))  return false;
+{
+    Logger::Write(Logger::INFO, "Intialize tasks");
+    // Create Main-Task
+    if(pthread_create(&maintask, NULL,&MainTask,NULL)) {
+        Logger::Write(Logger::ERROR, "error creating Main-task => exit");
+        return false;
+    }
+    // Create ANALOG-Task
+    if(pthread_create(&aintask, NULL,&AinTask,NULL)) {
+        Logger::Write(Logger::ERROR, "error creating AIN-task => exit");
+        return false;
+    }
+    // Create GSM-Task
+    if(pthread_create(&gsmtask, NULL,&GsmTask,NULL)) {
+        Logger::Write(Logger::ERROR, "error creating GSM-task => exit");
+        return false;
+    }
+    if(pthread_join(aintask,NULL)) return false;
+    Logger::Write(Logger::INFO, "joined AIN-task => exit");
     if(pthread_join(gsmtask,NULL))  return false;
+    Logger::Write(Logger::INFO, "joined GSM-task => exit");
     if(pthread_join(maintask,NULL)) return false;
+    Logger::Write(Logger::INFO, "joined MAIN-task => exit");
     delete IN_SCHARF;   // P9.14
     delete IN_UNSCHARF; // P9.16
     delete OUT_BUZZER;  // P9.25
     delete OUT_LED;     // P9.27
     delete CTRLFILE;    // File-IO Modul
-    delete RELAIS;      // Relais
-    delete INIFILE;     // IninFile read/write
+    delete RELAIS;      // I2C-Relais-Modul
+    delete RADIORELAIS; // xbee Relais-Modul
+    delete EMAILALARM;  // emailalarm
     return true;
 }
 
@@ -126,9 +188,14 @@ bool switch_relais(bool onoff)
 void set_armed(void)
 {
 int i;
+bool retval;
+
     // only set to armed if not alarm line is active or armed yet
     if(armed || alarmactive) return;
-    Logger::Write(Logger::INFO, "AL_main: Alarmanlage scharf geschaltet!");
+    Logger::Write(Logger::INFO, "Alarmanlage scharf geschaltet!");
+    retval = CTRLFILE->ReadIniFile();
+    if(retval) { Logger::Write(Logger::INFO, "Reading INI File during getting armed"); }
+    else       { Logger::Write(Logger::ERROR, "could not read INI File ==> exit"); program_end = true; }
     armed  = true;
     CTRLFILE->WriteSystemArmed(true);
     OUT_LED->setValue(high);
@@ -147,11 +214,11 @@ int i;
 void set_unarmed(void)
 {
     if(!armed) return;
-    Logger::Write(Logger::INFO, "AL_main: Alarmanlage unscharf geschaltet!");
+    Logger::Write(Logger::INFO, "Alarmanlage unscharf geschaltet!");
     armed       = false;
     alarmactive = false;
     switch_relais(OFF);
-
+    RADIORELAIS->switch_xbee(OFF);
     CTRLFILE->WriteSystemArmed(false);
     OUT_LED->setValue(low);
     OUT_BUZZER->setValue(high);
@@ -161,27 +228,28 @@ void set_unarmed(void)
 
 void *MainTask(void *value)
 {
-//FILE   *fp = NULL;
-//bool   outok;
-bool   barrier = false;
+uint8_t version;
+bool    armed_flag    = false;
+//bool    unarmed_flag  = false;
 static clock_t output_evt,tmeas_now;
 static int sectimer   = 0;
 static int mintimer   = 0;
 static int hourtimer  = 0;
 string autoalarmstr;
 string alarmtime;
-bool   retval;
+// bool   retval;
 
 
    // TEST
-   uint8_t      version;
    version      = RELAIS->getFirmwareVersion();
-   switch_relais(OFF);
    if(version == 0) Logger::Write(Logger::ERROR, "Relaisausgänge arbeiten nicht!");
-   // END RELAIS
+   switch_relais(OFF);
+   RADIORELAIS->switch_xbee(OFF);
 
    output_evt = 0;
    while(1) {
+       // INTERES SIGNAL PRGRAM END!!
+       if(program_end) break;
        //-----------------------------------------------------------
        // Sendesperre z.B. nicht mehr als einen Alarm/min. melden
        //-----------------------------------------------------------
@@ -196,30 +264,33 @@ bool   retval;
                  if(hourtimer++ >= 24) hourtimer = 0;
               }
           }
-          // read control-file cyclic 1 sec.
-          CTRLFILE->ReadFiles();
           // !!! ****** ALARMAUSGABE ****** !!!
-          if(alarmactive && !barrier && armed) {
+          //-----------------------------------------------------------
+          // SET ALARM OUTPUT ACTORS
+          //-----------------------------------------------------------
+          if(alarmactive && !armed_flag && armed) {
               switch_relais(ON);
+              RADIORELAIS->switch_xbee(ON);
+              EMAILALARM->send();
               // reset alarmtimecounter
               output_evt = 0;
               sectimer   = 0;
               mintimer   = 0;
               hourtimer  = 0;
-              barrier = true;
+              armed_flag = true;
           }
        }
        //-----------------------------------------------------------
        // Alarm Time to set unarmed
        //-----------------------------------------------------------
-       if((mintimer >= ALARMTIME) && armed && alarmactive) {
+       if((mintimer >= ALARMTIME) && armed && armed_flag) {
            set_unarmed();
-           barrier = false;
+           armed_flag = false;
        }
        //-----------------------------------------------------------
        // Buzzeralarm
        //-----------------------------------------------------------
-       if(armed && alarmactive) {
+       if(armed && armed_flag) {
            OUT_BUZZER->setValue(high);
            usleep(250000);
            OUT_BUZZER->setValue(low);
@@ -228,18 +299,19 @@ bool   retval;
        //-----------------------------------------------------------
        // Scharfschalter Einlesen
        //-----------------------------------------------------------
-//       if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)) && !armed)  {
+       // read control-file
+       CTRLFILE->ReadActFiles();
        if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
-           set_armed();
-           barrier = false;
-       }
-       //-----------------------------------------------------------
-       // Unscharfschalter Einlesen
-       //-----------------------------------------------------------
-//       if(((IN_UNSCHARF->getNumericValue() == high) || !(CTRLFILE->armed_from_file)) && armed)  {
-       if(((IN_UNSCHARF->getNumericValue() == high) || !(CTRLFILE->armed_from_file)))  {
-           set_unarmed();
-       }
+            set_armed();
+            armed_flag = false;
+        }
+        //-----------------------------------------------------------
+        // Unscharfschalter Einlesen
+        //-----------------------------------------------------------
+        if(((IN_UNSCHARF->getNumericValue() == high) || !(CTRLFILE->armed_from_file)))  {
+            set_unarmed();
+            armed_flag = true;
+        }
    }
    pthread_exit(NULL);
 }
@@ -253,12 +325,10 @@ bool   retval;
 //---------------------------------------------------------------------------
 int main()
 {
-
-    Logger::Start(Logger::DEBUG, "/home/debian/Alarmsystem/logs/alarm.log");
-    Logger::Write(Logger::INFO, "initializing Alarmsystem");
-
 struct sigaction action;
-int    retval;
+
+    Logger::Start(Logger::DEBUG, "/home/debian/Alarmsystem/files/alarm.log");
+    Logger::Write(Logger::INFO,  "initializing Alarmsystem");
 
     program_end = false;
     sendsms     = false;
@@ -272,75 +342,17 @@ int    retval;
     sigaction (SIGTERM, &action, NULL);
     sigaction (SIGINT,  &action, NULL);
 
-    // IO'S, FILES CLASSES
+    // IO'S AND CLASSES
     init_system();
-    // Write Inifile first
-    retval =  CTRLFILE->WriteINI(INIFILENAME);
-    if(retval) {
-        CTRLFILE->CreateDefaultIniFile();
-    }
-
-    Logger::Write(Logger::INFO, "reading INI");
-    // read inputfiles
-    if(!CTRLFILE->ReadFiles())
-    { Logger::Write(Logger::ERROR, "could not read controlfiles => exit"); return 0; }
-    Logger::Write(Logger::INFO, "writing INI");
-    // write ctrlfiles
-    if(!CTRLFILE->WriteFiles()) { Logger::Write(Logger::ERROR, "could not write controlfiles => exit"); return 0; }
-    Logger::Write(Logger::INFO, "intialize tasks");
-    // TASKS
-    if(!init_tasks())           { Logger::Write(Logger::ERROR, "error while creating tasks => exit"); return 0; };
-    // first Logmessage
+    // FILE READING WRITING
+    if(!file_work()) return 0;
+    // INITIALISE TASKS
+    if(!init_tasks()) return 0;
+    // ... LEAVING ALARMSYS
+    Logger::Write(Logger::INFO, "...leaving Alarmsystem Process!");
+    Logger::Stop();
     return 0;
 }
 
 
-// fp = popen("./mailer.sh","w");
-// if (fp == NULL) cout << "Failed sending email" << endl;
-// else            cout << "Successs sending email" << endl;
-// pclose(fp);
-
-
-
-/*
-
-  /etc/ssmtp/ssmtp.conf
-
-
-# echo "Test" | mail -s "Test" ralf@pandel.de
-#--------------------------------------------------
-# Config file for sSMTP sendmail
-#
-# The person who gets all mail for userids < 1000
-# Make this empty to disable rewriting.
-root=ralf@pandel.de
-
-# The place where the mail goes. The actual machine name is required no
-# MX records are consulted. Commonly mailhosts are named mail.domain.com
-mailhub=smtp.strato.de:587
-AuthUser=ralf@pandel.de
-AuthPass=
-UserTLS=YES
-UseSTARTTLS=YES
-AuthLogin=YES
-
-
-# Where will the mail seem to come from?
-rewriteDomain=pandel.de
-
-# The full hostname
-hostname=ralf@pandel.de
-
-# Are users allowed to set their own From: address?
-# YES - Allow the user to specify their own From: address
-# NO - Use the system generated From: address
-FromLineOverride=YES
-
---------------------------------------------------------
-Script mailer.sh
-
-#!/bin/bash
-echo "Alarm" | mail -s "Alarm" ralf@pandel.de
-
-*/
 

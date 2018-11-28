@@ -17,50 +17,138 @@ ctrlfile::ctrlfile(void)
 
 bool ctrlfile::CreateDefaultIniFile()
 {
-    SetValue("LOGLEVEL", "LOGDEBUG", "false");
-    SetValue("ADDRESS", "standort", "Flugschule");
-    SetValue("ADRESS", "strasse", "Flugplatzstrasse");
-    SetValue("ADRESS", "hausnummer", "3");
-    SetValue("ADRESS", "stadt", "Fehrbellin");
-    SetValue("ADRESS", "plz", "16833");
-    SetValue("ALARM", "autoalarm", "false");
-    SetValue("ALARM", "autocnt", "0");
-    SetValue("ALARM", "alarmtime", "20");
-    SetValue("ALARM", "alarmtext", "Flugschule/gruene Halle");
-    SetValue("ALARM_LINE", "lineactive", "false");
-    SetValue("ALARM_LINE", "lineumax", "false");
-    SetValue("ALARM_LINE", "lineumin", "false");
-    SetValue("ALARM_LINE", "linetext", "false");
-    SetValue("ALARM_LINE", "cnt", "false");
-    SetValue("NETWORK", "protocol", "false");
-    SetValue("GSM", "livetimer", "false");
-    SetValue("GSM", "rssitimer", "false");
-    SetValue("GSM", "livedeadtime", "false");
-    SetValue("GSM", "rssideadtime", "false");
-    SetValue("GSM", "creditwarnlevel", "false");
-    SetValue("TEL_NUM", "number", "false");
-    SetValue("TEL_NUM", "name", "false");
-    SetValue("OUT_ACTIVE", "outactive", "false");
-    SetValue("EMAIL", "alarmmail", "false");
-    SetValue("EMAIL", "servicemail", "false");
-
-
+    SetValue("LOGLEVEL","logdebug",  "false");
+    SetValue("ADDRESS", "standort",  "Flugschule");
+    SetValue("ADDRESS", "strasse",   "Flugplatzstrasse");
+    SetValue("ADDRESS", "hausnummer","3");
+    SetValue("ADDRESS", "stadt",     "Fehrbellin");
+    SetValue("ADDRESS", "plz",       "16833");
+    SetValue("ALARM",   "autoalarm", "false");
+    SetValue("ALARM",   "autocnt",   "0");
+    SetValue("ALARM",   "alarmtime", "20");
+    SetValue("ALARM",   "alarmtext", "Flugschule/gruene Halle");
+    SetValue("ALARM_LINE", "line1active", "true");
+    SetValue("ALARM_LINE", "line1umax",   "1.3");
+    SetValue("ALARM_LINE", "line1umin",   "0.3");
+    SetValue("ALARM_LINE", "line1text",   "Halle Gruen");
+    SetValue("ALARM_LINE", "line2active", "true");
+    SetValue("ALARM_LINE", "line2umax",   "1.3");
+    SetValue("ALARM_LINE", "line2umin",   "0.3");
+    SetValue("ALARM_LINE", "line2text",   "Empfang");
+    SetValue("ALARM_LINE", "line3active", "false");
+    SetValue("ALARM_LINE", "line3umax",   "1.3");
+    SetValue("ALARM_LINE", "line3umin",   "0.3");
+    SetValue("ALARM_LINE", "line3text",   "linie3");
+    SetValue("ALARM_LINE", "line4active", "false");
+    SetValue("ALARM_LINE", "line4umax",   "1.3");
+    SetValue("ALARM_LINE", "line4umin",   "0.3");
+    SetValue("ALARM_LINE", "line4text",   "linie4");
+    SetValue("NETWORK", "protocol",  "dhcp");
+    SetValue("NETWORK", "address",   "192.168.2.118");
+    SetValue("GSM", "livetimer",      "60");
+    SetValue("GSM", "rssitimer",      "60");
+    SetValue("GSM", "livedeadtime",   "300");
+    SetValue("GSM", "rssideadtime",   "300");
+    SetValue("GSM", "creditwarnlevel","5.0");
+    SetValue("TEL_NUM", "number1", "+491759944339");
+    SetValue("TEL_NUM", "name1",   "Ralf Pandel");
+    SetValue("TEL_NUM", "number2", "+1746122123");
+    SetValue("TEL_NUM", "name2",   "Detlef Jenke");
+    SetValue("TEL_NUM", "number3", "+1715410110");
+    SetValue("TEL_NUM", "name3",   "Dussmann");
+    SetValue("OUT_ACTIVE", "out1", "true");
+    SetValue("OUT_ACTIVE", "out2", "true");
+    SetValue("OUT_ACTIVE", "out3", "true");
+    SetValue("OUT_ACTIVE", "out4", "true");
+    SetValue("EMAIL", "alarmmail1",  "ralf@pandel.de");
+    SetValue("EMAIL", "alarmmail2",  "email@messagebird.de");
+    SetValue("EMAIL", "servicemail", "ralf@pandel.de");
+    SetValue("XBEE_REMOTE", "macid1", "0013A200418259D5");
+    SetValue("XBEE_REMOTE", "out1", "4");
+    SetValue("XBEE_REMOTE", "in1", "12");
+    SetValue("XBEE_REMOTE", "macid2", "0013A200418259D5");
+    SetValue("XBEE_REMOTE", "out2", "4");
+    SetValue("XBEE_REMOTE", "in2", "12");
     return true;
 }
 
-// Reads all files in the system
-bool ctrlfile::ReadFiles(void)
+bool ctrlfile::CheckFileExists(const char *checkfilename)
+{
+ifstream  checkfile;
+
+   checkfile.open(checkfilename, ios_base::in);
+   if(!checkfile) return false;
+   checkfile.close();
+   return true;
+}
+
+bool ctrlfile::ReadIniFile(void)
 {
 bool retval;
-string autoalarmstr;
-string alarmtime;
 
-    // INIFILETEST
     retval  = ReadINI(INIFILENAME);
     if(retval) {
-        autoalarmstr = GetValue("ALARM","autoalarm");
-        alarmtime    = GetValue("ALARM","alarmtime");
+        ini.LOGLEVEL.logdebug  = GetValue("LOGLEVEL","logdebug");
+        ini.ADDRESS.standort   = GetValue("ADDRESS" ,"standort");
+        ini.ADDRESS.strasse    = GetValue("ADDRESS" ,"strasse");
+        ini.ADDRESS.hausnummer = GetValue("ADDRESS" ,"hausnummer");
+        ini.ADDRESS.plz        = GetValue("ADDRESS" ,"plz");
+        ini.ADDRESS.stadt      = GetValue("ADDRESS" ,"stadt");
+        ini.ALARM.autoalarm    = GetValue("ALARM"   ,"autoalarm");
+        ini.ALARM.autocnt      = GetValue("ALARM"   ,"autocnt");
+        ini.ALARM.alarmtime    = GetValue("ALARM"   ,"alarmtime");
+        ini.ALARM.alarmtext    = GetValue("ALARM"   ,"alarmtext");
+        ini.ALARM_LINE.lineactv[0] = GetValue("ALARM_LINE" ,"line1active");
+        ini.ALARM_LINE.lineumax[0] = GetValue("ALARM_LINE" ,"line1umax");
+        ini.ALARM_LINE.lineumin[0] = GetValue("ALARM_LINE" ,"line1umin");
+        ini.ALARM_LINE.linetext[0] = GetValue("ALARM_LINE" ,"line1text");
+        ini.ALARM_LINE.lineactv[1] = GetValue("ALARM_LINE" ,"line2active");
+        ini.ALARM_LINE.lineumax[1] = GetValue("ALARM_LINE" ,"line2umax");
+        ini.ALARM_LINE.lineumin[1] = GetValue("ALARM_LINE" ,"line2umin");
+        ini.ALARM_LINE.linetext[1] = GetValue("ALARM_LINE" ,"line2text");
+        ini.ALARM_LINE.lineactv[2] = GetValue("ALARM_LINE" ,"line3active");
+        ini.ALARM_LINE.lineumax[2] = GetValue("ALARM_LINE" ,"line3umax");
+        ini.ALARM_LINE.lineumin[2] = GetValue("ALARM_LINE" ,"line3umin");
+        ini.ALARM_LINE.linetext[2] = GetValue("ALARM_LINE" ,"line3text");
+        ini.ALARM_LINE.lineactv[3] = GetValue("ALARM_LINE" ,"line4active");
+        ini.ALARM_LINE.lineumax[3] = GetValue("ALARM_LINE" ,"line4umax");
+        ini.ALARM_LINE.lineumin[3] = GetValue("ALARM_LINE" ,"line4umin");
+        ini.ALARM_LINE.linetext[3] = GetValue("ALARM_LINE" ,"line4text");
+        ini.NETWORK.protocol     = GetValue("NETWORK" ,"protocol");
+        ini.NETWORK.address      = GetValue("NETWORK" ,"address");
+        ini.GSM.livetimer        = GetValue("GSM"     ,"livetimer");
+        ini.GSM.rssitimer        = GetValue("GSM"     ,"rssitimer");
+        ini.GSM.livedeadtime     = GetValue("GSM"     ,"livedeadtime");
+        ini.GSM.rssideadtime     = GetValue("GSM"     ,"rssideadtime");
+        ini.GSM.creditwarnlevel  = GetValue("GSM"     ,"creditwarnlevel");
+        ini.TEL_NUM.number[0]    = GetValue("TEL_NUM" ,"number1");
+        ini.TEL_NUM.name[0]      = GetValue("TEL_NUM" ,"name1");
+        ini.TEL_NUM.number[1]    = GetValue("TEL_NUM" ,"number2");
+        ini.TEL_NUM.name[1]      = GetValue("TEL_NUM" ,"name2");
+        ini.TEL_NUM.number[2]    = GetValue("TEL_NUM" ,"number3");
+        ini.TEL_NUM.name[2]      = GetValue("TEL_NUM" ,"name3");
+        ini.OUT_ACTIVE.out[0]  = GetValue("OUT_ACTIVE" ,"out1");
+        ini.OUT_ACTIVE.out[1]  = GetValue("OUT_ACTIVE" ,"out2");
+        ini.OUT_ACTIVE.out[2]  = GetValue("OUT_ACTIVE" ,"out3");
+        ini.OUT_ACTIVE.out[3]  = GetValue("OUT_ACTIVE" ,"out4");
+        ini.EMAIL.alarmmail[0] = GetValue("EMAIL" ,"alarmmail1");
+        ini.EMAIL.alarmmail[1] = GetValue("EMAIL" ,"alarmmail2");
+        ini.EMAIL.servicemail  = GetValue("EMAIL" ,"servicemail");
+        ini.XBEE.macid[0]      = GetValue("XBEE" ,"macid1");
+        ini.XBEE.out[0]        = GetValue("XBEE" ,"out1");
+        ini.XBEE.in[0]         = GetValue("XBEE" ,"in1");
+        ini.XBEE.macid[1]      = GetValue("XBEE" ,"macid2");
+        ini.XBEE.out[1]        = GetValue("XBEE" ,"out2");
+        ini.XBEE.in[1]         = GetValue("XBEE" ,"in2");
+        return true;
     }
+    return false;
+}
+
+// Reads all files in the system
+bool ctrlfile::ReadActFiles(void)
+{
+bool retval;
 
 //   if(!ReadAlarmNumbers()) return false;
 //   if(!ReadAlarmMsg())     return false;
@@ -69,7 +157,7 @@ string alarmtime;
    return true;
 }
 
-bool ctrlfile::WriteFiles(void)
+bool ctrlfile::WriteActFiles(void)
 {
    if(!WriteSystemArmed(false)) return false;
    return true;
@@ -84,7 +172,6 @@ const char   armedfilename[] = ARMEDFILE;
    armed_from_file = ctrl;
    armedfile.open(armedfilename, ios_base::out);
    if(!armedfile) {
-       cout << "SystemArmed: Datei kann nicht zum Schreiben geöffnet werden." << endl;
        return false;
    }
    else {
@@ -108,7 +195,6 @@ bool       readval;
 
    armedfile.open(numberfilename, ios_base::in);
    if(!armedfile) {
-       cout << "SystemArmed: Datei kann nicht zum lesen geöffnet werden." << endl;
        return false;
    }
    else {
@@ -241,7 +327,7 @@ int pos_a, pos_b, pos_c;
 
 ctrlfile::~ctrlfile(void)
 {
-	ctrlfile::WriteFiles();
+	ctrlfile::WriteActFiles();
 }
 /*
 

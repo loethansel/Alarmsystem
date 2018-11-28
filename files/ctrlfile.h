@@ -8,19 +8,20 @@
 #include "iniparser.h"
 
 // xx SekundenCheck des GSM-Moduls
-#define NUMBERFILE     "/home/debian/Alarmsystem/configfiles/gsm_number.txt"
-#define MSGFILE        "/home/debian/Alarmsystem/configfiles/gsm_alarmmsg.txt"
-#define ARMEDFILE      "/home/debian/Alarmsystem/configfiles/sys_armed.txt"
-#define LINESFILE      "/home/debian/Alarmsystem/configfiles/sys_lines.txt"
-#define INIFILENAME    "/home/debian/Alarmsystem/configfiles/config.ini"
+#define NUMBERFILE     "/home/debian/Alarmsystem/files/gsm_number.txt"
+#define MSGFILE        "/home/debian/Alarmsystem/files/gsm_alarmmsg.txt"
+#define ARMEDFILE      "/home/debian/Alarmsystem/files/sys_armed.txt"
+#define LINESFILE      "/home/debian/Alarmsystem/files/sys_lines.txt"
+#define INIFILENAME    "/home/debian/Alarmsystem/files/config.ini"
 #define MAX_NUM       5
 #define MAX_MSG       5
-#define MAXLINES     10
+#define MAXLINES      4
 #define MAX_LINE_LEN  5
 #define MAX_NUM_LEN  50
 #define MAX_MSG_LEN  50
 #define MAX_OUT       4
 #define MAX_MAIL      2
+#define MAX_XBEE      2
 // TYPEDEFS
 
 // INISTRUCT
@@ -41,14 +42,14 @@ typedef struct {
     string alarmtext;
 } s_alarm;
 typedef struct {
-    string lineactive[MAXLINES];
+    string lineactv[MAXLINES];
     string lineumax[MAXLINES];
     string lineumin[MAXLINES];
     string linetext[MAXLINES];
-    string cnt;
 } s_lines;
 typedef struct {
-   string protocol;
+    string protocol;
+    string address;
 } s_net;
 typedef struct {
     string livetimer;
@@ -62,12 +63,17 @@ typedef struct {
     string name[MAX_NUM];
 } s_num;
 typedef struct {
-    string outactive[MAX_OUT];
+    string out[MAX_OUT];
 } s_out;
 typedef struct {
     string alarmmail[MAX_MAIL];
-    string servicemail[MAX_MAIL];
+    string servicemail;
 } s_mail;
+typedef struct {
+    string macid[MAX_XBEE];
+    string out[MAX_XBEE];
+    string in[MAX_XBEE];
+} s_xbee;
 // INISTRUCT
 typedef struct {
    s_default LOGLEVEL;
@@ -79,6 +85,7 @@ typedef struct {
    s_num     TEL_NUM;
    s_out     OUT_ACTIVE;
    s_mail    EMAIL;
+   s_xbee    XBEE;
 } s_initval;
 /*
 // ALARMNUMMERN
@@ -125,20 +132,22 @@ class ctrlfile : public INIParser
 {
 public:
    bool       armed_from_file;
-//   s_msgtxt   msgtext;
-//   s_alarmnum alarmnum;
-//   s_lines    lines;
    s_initval  ini;
+   //   s_msgtxt   msgtext;
+   //   s_alarmnum alarmnum;
+   //   s_lines    lines;
    ctrlfile();
    virtual ~ctrlfile();
+   bool CheckFileExists(const char *checkfilename);
    bool CreateDefaultIniFile(void);
-   bool ReadFiles(void);
-   bool WriteFiles(void);
+   bool ReadIniFile(void);
+   bool ReadActFiles(void);
+   bool WriteActFiles(void);
    bool WriteSystemArmed(bool ctrl);
-//   bool ReadAlarmNumbers(void);
-//   bool ReadAlarmMsg(void);
    bool ReadSystemArmed(void);
-//   bool ReadLines(void);
+   //   bool ReadAlarmNumbers(void);
+   //   bool ReadAlarmMsg(void);
+   //   bool ReadLines(void);
 private:
    bool ReadInifile(void);
 };
