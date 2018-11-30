@@ -7,10 +7,13 @@
  *       */
 // INCLUDES
 #include "gsm_proc.h"
+#include "../alarmsys.h"
+#include "../logger/logger.h"
 // NAMESPACES
 using namespace std;
 using namespace BlackLib;
-// GLOBALVARS
+using namespace logger;
+// THREADS
 pthread_t gsmtask;
 
 // GSMTASK
@@ -22,16 +25,20 @@ static int  rssitimer   = 0;
 static int  livefailcnt = 0;
 static int  rssifailcnt = 0;
 static bool status      = false;
+stringstream ss;
+string        s;
+int i;
 FONA FONA1;
 
    // start fona on power up
    if(!FONA1.Power_On()) {
-       cout << "Fona startet nicht!" << endl;
-       cout << "Alarmanlage nicht scharf schalten, kein Buzzer!" << endl;
-       pthread_exit(NULL);
+       Logger::Write(Logger::ERROR,"poweron-Error: fona did not boot");
+       cout << "poweron-error: Fona startet nicht!" << endl;
+       Logger::Write(Logger::INFO,"alarmsystem not armed, no buzzer");
+       cout << "poweron-error: alarmsystem not armed, no buzzer" << endl;
    }
    output_evt = 0;
-
+   // LOOP
    while(1) {
        // INTERES SIGNAL PRGRAM END!!
        if(program_end) break;
@@ -47,18 +54,29 @@ FONA FONA1;
        // armed-signal from mainthread, read files on every going "armed"
        if(armed && !status) {
            // read credit
-           FONA1.CreditCheck();
-           status = true;
+           if(FONA1.fonarssi) {
+               cout << "do first fona credit check after armed" << endl;
+               Logger::Write(Logger::INFO,"do first fona credit check after armed");
+               FONA1.CreditCheck();
+               status = true;
+           }
        }
        else if(!armed) status = false;
-       // sendsms-signal from mainthread
+       // send-sms-signal from mainthread
        if(sendsms) {
-           // TODO: send email too
-           // .........
     	   // if live and rri send the email if not wait .....
            if(FONA1.fonarssi && FONA1.fonalive) {
-              if(FONA1.SendSms()) FONA1.CreditCheck();
-              else cout << "Fona Fehler beim Senden SMS!" << endl;
+              for(i=0;i<1;i++) {
+                  ss.clear();
+                  ss << "Alarm Flugschule/Rundhalle!";
+                  s.clear();
+                  s = ss.str();
+                 if(FONA1.SendSms(CTRLFILE->ini.TEL_NUM.number[i],s)) FONA1.CreditCheck();
+                 else {
+                     Logger::Write(Logger::ERROR,"SMS-error: fona error during send SMS!");
+                     cout << "fona error during SMS sending!" << endl;
+                 }
+              }
               sendsms = false;
            }
        }
@@ -66,15 +84,16 @@ FONA FONA1;
        if(livetimer >= LIVE_TIMER) {
     	  livetimer = 0;
           if(!FONA1.LiveCheck()) {
-        	  cout << "Fona liefert kein Acknowledge!" << endl;
+              Logger::Write(Logger::ERROR,"fona did not acknowledge the LiveCheck!");
+        	  cout << "Fona liefert kein Acknowledge during LiveCheck!" << endl;
         	  // if there is for five minutes no live in it => reset an email
         	  if(++livefailcnt > (MAX_DEAD_LIVETIME/LIVE_TIMER)) {
         		  FONA1.Power_On();
-        		  // TODO: send only one email to admin
+        		  Logger::Write(Logger::ERROR,"Live-Check-Error: Fona musste reanimiert werden!");
         		  livefailcnt = 0;
         	  }
           }
-          else { livefailcnt = 0; cout << "Fona ist AT+OK!" << endl; }
+          else { livefailcnt = 0; cout << "fona is AT+OK!" << endl; }
        }
        // check network quality every minute
        if(rssitimer >= RSSI_TIMER) {
@@ -84,11 +103,13 @@ FONA FONA1;
         	   // if there is for trhree minutes no live in it => reset an email
         	   if(++rssifailcnt > (MAX_DEAD_RSSITIME/RSSI_TIMER)) {
          		  FONA1.Power_On();
-         		  // TODO: send only one email to admin
+                  Logger::Write(Logger::ERROR,"RSSI-Error: Fona hat keinen GSM-Empfang!");
          		  rssifailcnt = 0;
         	   }
            }
-           else { cout << "Fona Empfang!" << endl; }
+           else {
+               cout << "Fona Empfang!" << endl;
+           }
        }
    }
    pthread_exit(NULL);

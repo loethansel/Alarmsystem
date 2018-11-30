@@ -8,6 +8,8 @@
 #ifndef EMAIL_EMAIL_H_
 #define EMAIL_EMAIL_H_
 
+#define EMAILFILENAME    "/home/debian/Alarmsystem/files/mailer.sh"
+
 namespace std
 {
 

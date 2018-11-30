@@ -35,7 +35,7 @@ public:
     bool poweredon;
     FONA(void);
     ~FONA(void);
-    int SendSms(void);
+    int SendSms(const string& telnumber, const string& text);
     int LiveCheck();
     int RxLevelCheck();
     int CreditCheck();

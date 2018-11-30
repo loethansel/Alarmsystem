@@ -38,6 +38,7 @@ extern bool sendsms;
 extern bool armed;
 extern bool alarmactive;
 extern bool program_end;
+extern bool contactopen;
 
 extern BlackGPIO    *OUT_BUZZER;
 extern BlackGPIO    *OUT_LED;
@@ -58,5 +59,6 @@ extern email        *EMAILALARM;
 #define OFF false
 // Alarmtime in minutes
 #define ALARMTIME 1
+#define LOGFILENAME "/home/debian/Alarmsystem/files/alarm.log"
 
 #endif /* ALARMSYS_H_ */

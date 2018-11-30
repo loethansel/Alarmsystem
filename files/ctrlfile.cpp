@@ -50,19 +50,19 @@ bool ctrlfile::CreateDefaultIniFile()
     SetValue("GSM", "livedeadtime",   "300");
     SetValue("GSM", "rssideadtime",   "300");
     SetValue("GSM", "creditwarnlevel","5.0");
-    SetValue("TEL_NUM", "number1", "+491759944339");
-    SetValue("TEL_NUM", "name1",   "Ralf Pandel");
-    SetValue("TEL_NUM", "number2", "+1746122123");
-    SetValue("TEL_NUM", "name2",   "Detlef Jenke");
-    SetValue("TEL_NUM", "number3", "+1715410110");
-    SetValue("TEL_NUM", "name3",   "Dussmann");
+    SetValue("TEL_NUM", "number1", "+49000000000");
+    SetValue("TEL_NUM", "name1",   "name1");
+    SetValue("TEL_NUM", "number2", "+49000000000");
+    SetValue("TEL_NUM", "name2",   "name2");
+    SetValue("TEL_NUM", "number3", "+49000000000");
+    SetValue("TEL_NUM", "name3",   "wachschutz");
     SetValue("OUT_ACTIVE", "out1", "true");
     SetValue("OUT_ACTIVE", "out2", "true");
     SetValue("OUT_ACTIVE", "out3", "true");
     SetValue("OUT_ACTIVE", "out4", "true");
-    SetValue("EMAIL", "alarmmail1",  "ralf@pandel.de");
+    SetValue("EMAIL", "alarmmail1",  "email@emal.de");
     SetValue("EMAIL", "alarmmail2",  "email@messagebird.de");
-    SetValue("EMAIL", "servicemail", "ralf@pandel.de");
+    SetValue("EMAIL", "servicemail", "email@email.de");
     SetValue("XBEE_REMOTE", "macid1", "0013A200418259D5");
     SetValue("XBEE_REMOTE", "out1", "4");
     SetValue("XBEE_REMOTE", "in1", "12");
@@ -148,12 +148,7 @@ bool retval;
 // Reads all files in the system
 bool ctrlfile::ReadActFiles(void)
 {
-bool retval;
-
-//   if(!ReadAlarmNumbers()) return false;
-//   if(!ReadAlarmMsg())     return false;
    if(!ReadSystemArmed())  return false;
-//   if(!ReadLines())        return false;
    return true;
 }
 
@@ -214,184 +209,10 @@ bool       readval;
    armed_from_file = readval;
    return true;
 }
-/*
 
-// Reads the file with Alarm numbers
-bool ctrlfile::ReadAlarmNumbers(void)
-{
-ifstream     numberfile;
-string       s;
-stringstream ss;
-const char numberfilename[] = NUMBERFILE;
-char line[255];
-int retval;
-int i,len1,len2;
-int pos_a, pos_b, pos_c;
-
-   numberfile.open(numberfilename, ios_base::in);
-   if(!numberfile) {
-       cout << "Alarmnummern: Datei kann nicht geöffnet werden." << endl;
-       return false;
-   } else {
-       numberfile.getline(line,MAX_NUM_LEN,'\n');
-       s = line;
-       retval = s.find("STX");
-       if(retval != -1) {
-           alarmnum.numcnt = 0;
-           for(i=0;i<MAX_NUM;i++) {
-              // read line
-              numberfile.getline(line,MAX_NUM_LEN,'\n');
-              s = line;
-              // check End Of Text
-              retval = s.find("ETX");
-              if(retval != -1) break;
-              // if not ETX read new number
-              pos_a = s.find_first_of(':',0);
-              pos_b = s.find_first_of('-',0);
-              pos_c = s.find_first_of(';',0);
-              len1 = pos_b - pos_a -1;
-              if(len1 > MAX_NUM_LEN) len1 = MAX_NUM_LEN;
-              len2 = pos_c - pos_b -1;
-              if(len2 > MAX_NUM_LEN) len2 = MAX_NUM_LEN;
-              // read number "+491759944339"
-              alarmnum.numname[i].numberlen = s.copy(alarmnum.numname[i].number,len1,pos_a+1);
-              // read name "Ralf"
-              alarmnum.numname[i].namelen   = s.copy(alarmnum.numname[i].name,len2,pos_b+1);
-              // numbercnt increment
-              alarmnum.numcnt++;
-           }
-       } else {
-           cout << "Alarmnummern: STX nicht gefunden." << endl;
-           return false;
-       }
-
-   }
-   numberfile.close();
-   return true;
-}
-
-// Reads the file with Alarm Messages
-bool ctrlfile::ReadAlarmMsg(void)
-{
-ifstream     msgfile;
-string       s;
-stringstream ss;
-const char msgfilename[] = MSGFILE;
-char line[255];
-int retval;
-int i,len1,len2;
-int pos_a, pos_b, pos_c;
-
-   msgfile.open(msgfilename, ios_base::in);
-   if(!msgfile) {
-       cout << "Alarmnummern: Datei kann nicht geöffnet werden." << endl;
-       return false;
-   } else {
-       msgfile.getline(line,MAX_MSG_LEN,'\n');
-       s = line;
-       retval = s.find("STX");
-       if(retval != -1) {
-           alarmnum.numcnt = 0;
-           for(i=0;i<MAX_NUM;i++) {
-              // read line
-              msgfile.getline(line,MAX_MSG_LEN,'\n');
-              s = line;
-              // check End Of Text
-              retval = s.find("ETX");
-              if(retval != -1) break;
-              // if not ETX read new number
-              pos_a = s.find_first_of(':',0);
-              pos_b = s.find_first_of('-',0);
-              pos_c = s.find_first_of(';',0);
-              len1 = pos_b - pos_a -1;
-              if(len1 > MAX_MSG_LEN) len1 = MAX_MSG_LEN;
-              len2 = pos_c - pos_b -1;
-              if(len2 > MAX_MSG_LEN) len2 = MAX_MSG_LEN;
-              // read number "+491759944339"
-              msgtext.msgid[i].msgtxtlen = s.copy(msgtext.msgid[i].msgtxt,len1,pos_a+1);
-              // read name "Ralf"
-              msgtext.msgid[i].msgtxtlen = s.copy(msgtext.msgid[i].msgtxt,len2,pos_b+1);
-              // numbercnt increment
-              msgtext.msgcnt++;
-           }
-       } else {
-           cout << "Alarmnummern: STX nicht gefunden." << endl;
-           return false;
-       }
-
-   }
-   msgfile.close();
-   return true;
-}
-*/
 
 ctrlfile::~ctrlfile(void)
 {
 	ctrlfile::WriteActFiles();
 }
-/*
-
-// Reads the file with Alarm numbers
-bool ctrlfile::ReadLines(void)
-{
-ifstream     linefile;
-string       s;
-stringstream ss;
-const char linesfilename[] = LINESFILE;
-char line[255],hstr[255];
-int retval;
-int i,len1,len2,len3;
-int pos_a, pos_b, pos_c, pos_d;
-
-   linefile.open(linesfilename, ios_base::in);
-   if(!linefile) {
-       cout << "Alarmlinien: Datei kann nicht geöffnet werden." << endl;
-       return false;
-   } else {
-       linefile.getline(line,MAX_NUM_LEN,'\n');
-       s = line;
-       retval = s.find("STX");
-       if(retval != -1) {
-           lines.cnt = 0;
-           for(i=0;i<MAX_NUM;i++) {
-              // read line
-              linefile.getline(line,MAX_NUM_LEN,'\n');
-              s = line;
-              // check End Of Text
-              retval = s.find("ETX");
-              if(retval != -1) break;
-              // if not ETX Check string
-              pos_a = s.find_first_of(':',0);
-              pos_b = s.find_first_of('-',0);
-              pos_c = s.find_first_of('+',0);
-              pos_d = s.find_first_of(';',0);
-              len1 = 1;
-              len2 = pos_c - pos_b -1;
-              len3 = pos_d - pos_c -1;
-              if(len2 > MAX_LINE_LEN) len2 = MAX_LINE_LEN;
-              if(len3 > MAX_LINE_LEN) len3 = MAX_LINE_LEN;
-              // copy first sign
-              s.copy(hstr,len1,pos_a+1);
-              if(hstr[0] == '1') lines.l[i].account = true;
-              else               lines.l[i].account = false;
-              // copy of Umin
-              s.copy(hstr,len2,pos_b+1);
-              lines.l[i].umin = stof(hstr);
-              // copy of Umax
-              s.copy(hstr,len3,pos_c+1);
-              lines.l[i].umax = stof(hstr);
-              // numbercnt increment
-              lines.cnt++;
-           }
-       } else {
-           cout << "Alarmnummern: STX nicht gefunden." << endl;
-           return false;
-       }
-   }
-   linefile.close();
-   return true;
-}
-*/
-
-
 

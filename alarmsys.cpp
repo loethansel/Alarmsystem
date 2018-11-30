@@ -12,16 +12,16 @@ using namespace std;
 using namespace BlackLib;
 using namespace logger;
 //---------------------------------------------------------------------------
-// GLOBAL Defines
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-// GLOBAL Declarations
+// GLOBAL VAR Declarations
 //---------------------------------------------------------------------------
 ofstream ofs;
 bool program_end;
 bool sendsms;
 bool armed;
 bool alarmactive;
+bool contactopen;
+bool buzzeralarm;
+bool armed_blocked;
 
 //---------------------------------------------------------------------------
 // Threads Declarations
@@ -46,24 +46,23 @@ xbee         *RADIORELAIS;
 // EMAIL
 email        *EMAILALARM;
 
+//----------------------------------------------------------
+// TERMINATION_HANDLER
+//----------------------------------------------------------
 void termination_handler(int sig)
 {
 stringstream ss;
 string        s;
 
-    ss << "Caught Signal: " << dec << sig << endl;
-    s = ss.str();
-    Logger::Write(Logger::INFO,s);
-
-   Logger::Write(Logger::INFO, "Caught Signal: ");// << sig);
-   // Logfile last Output
-   Logger::Write(Logger::INFO, "close logfile..........");// << sig);
-   // close Logfile
-   ofs.close();
+   ss << "caught signal: " << dec << sig << " => process termination..." << endl;
+   s = ss.str();
+   Logger::Write(Logger::INFO,s);
    exit(0);
 }
-
+//-----------------------------------------------------------
+// FILE_WORK
 // READING OR WRITING FILES
+//----------------------------------------------------------
 bool file_work(void)
 {
 bool retval;
@@ -73,36 +72,39 @@ bool retval;
         // Write Inifile first
         CTRLFILE->CreateDefaultIniFile();
         retval =  CTRLFILE->WriteINI(INIFILENAME);
-        if(retval) { Logger::Write(Logger::INFO, "Creating Default INI"); }
-        else       { Logger::Write(Logger::ERROR, "could not create Default INI"); return false; }
+        if(retval) { Logger::Write(Logger::INFO, "creating default INI"); }
+        else       { Logger::Write(Logger::ERROR, "could not create default INI"); return false; }
     } else {
         retval = CTRLFILE->ReadIniFile();
-        if(retval) { Logger::Write(Logger::INFO, "Reading INI File"); }
-        else       { Logger::Write(Logger::ERROR, "could not read INI File"); return false; }
+        if(retval) { Logger::Write(Logger::INFO, "reading INI file"); }
+        else       { Logger::Write(Logger::ERROR, "could not read INI file"); return false; }
     }
     // ACTION-CONTROL FILES
     Logger::Write(Logger::INFO, "Read/Write Action Control-Files");
     if(!CTRLFILE->CheckFileExists(ARMEDFILE)) {
         retval = CTRLFILE->WriteActFiles();
-        if(retval) { Logger::Write(Logger::INFO, "Creating Controlfile"); }
-        else       { Logger::Write(Logger::ERROR,"could not create Controlfile => exit"); return false; }
+        if(retval) { Logger::Write(Logger::INFO, "creating controlfile"); }
+        else       { Logger::Write(Logger::ERROR,"could not create controlfile => exit"); return false; }
     } else {
         // Read Action ctrlfiles
         retval = CTRLFILE->ReadActFiles();
-        if(retval)  { Logger::Write(Logger::INFO, "Reading Controlfile"); }
-        else        { Logger::Write(Logger::ERROR,"could not read Controlfile => exit"); return false; }
+        if(retval)  { Logger::Write(Logger::INFO, "reading controlfile"); }
+        else        { Logger::Write(Logger::ERROR,"could not read controlfile => exit"); return false; }
     }
    return true;
 }
 
+//-----------------------------------------------------------
+// INIT_SYSTEM
+//----------------------------------------------------------
 void init_system(void)
 {
     // INPUTS
-    Logger::Write(Logger::INFO, "Main: Input GPIO's exported to /sys/class/gpio");
+    Logger::Write(Logger::INFO, "input GPIO's exported to /sys/class/gpio");
     IN_SCHARF   = new BlackGPIO(BlackLib::GPIO_50 ,BlackLib::input); // P9.14
     IN_UNSCHARF = new BlackGPIO(BlackLib::GPIO_51 ,BlackLib::input); // P9.16
     // OUTPUTS
-    Logger::Write(Logger::INFO, "Main: Output GPIO's exported to /sys/class/gpio");
+    Logger::Write(Logger::INFO, "output GPIO's exported to /sys/class/gpio");
     OUT_BUZZER = new BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode); // P9.25
     OUT_BUZZER->setValue(low);
     OUT_LED    = new BlackGPIO(BlackLib::GPIO_115,BlackLib::output,BlackLib::FastMode); // P9.27
@@ -133,9 +135,12 @@ void init_system(void)
     // GPIO_26  == P8.14  (IN)
 }
 
+//-----------------------------------------------------------
+// INIT_TASKS
+//----------------------------------------------------------
 bool init_tasks(void)
 {
-    Logger::Write(Logger::INFO, "Intialize tasks");
+    Logger::Write(Logger::INFO, "intialize tasks");
     // Create Main-Task
     if(pthread_create(&maintask, NULL,&MainTask,NULL)) {
         Logger::Write(Logger::ERROR, "error creating Main-task => exit");
@@ -157,6 +162,7 @@ bool init_tasks(void)
     Logger::Write(Logger::INFO, "joined GSM-task => exit");
     if(pthread_join(maintask,NULL)) return false;
     Logger::Write(Logger::INFO, "joined MAIN-task => exit");
+    // free the memory
     delete IN_SCHARF;   // P9.14
     delete IN_UNSCHARF; // P9.16
     delete OUT_BUZZER;  // P9.25
@@ -168,14 +174,18 @@ bool init_tasks(void)
     return true;
 }
 
+//-----------------------------------------------------------
+// SWITCH_RELAIS (serial)
+//----------------------------------------------------------
 bool switch_relais(bool onoff)
-{
+{   // switch on serial relais
     if(onoff) {
         RELAIS->turn_on_channel(1);
         RELAIS->turn_on_channel(2);
         RELAIS->turn_on_channel(3);
         RELAIS->turn_on_channel(4);
     }
+    // switch off serial relais
     else {
         RELAIS->turn_off_channel(1);
         RELAIS->turn_off_channel(2);
@@ -185,73 +195,89 @@ bool switch_relais(bool onoff)
     return true;
 }
 
+//-----------------------------------------------------------
+// SET_ARMED
+//----------------------------------------------------------
 void set_armed(void)
 {
 int i;
 bool retval;
 
     // only set to armed if not alarm line is active or armed yet
-    if(armed || alarmactive) return;
-    Logger::Write(Logger::INFO, "Alarmanlage scharf geschaltet!");
+    if(armed || contactopen) return;
+    cout << "scharf" << endl;
+    Logger::Write(Logger::INFO, "alarmsystem ARMED!");
+    CTRLFILE->Clear();
     retval = CTRLFILE->ReadIniFile();
-    if(retval) { Logger::Write(Logger::INFO, "Reading INI File during getting armed"); }
-    else       { Logger::Write(Logger::ERROR, "could not read INI File ==> exit"); program_end = true; }
-    armed  = true;
+    if(retval) { Logger::Write(Logger::INFO,  "reading INI file during getting armed"); }
+    else       { Logger::Write(Logger::ERROR, "could not read INI file ==> exit"); program_end = true; }
+    armed         = true;
+    armed_blocked = false;
     CTRLFILE->WriteSystemArmed(true);
     OUT_LED->setValue(high);
     for(i=0;i<3;i++) {
        OUT_BUZZER->setValue(high);
-       usleep(500000);
+       usleep(250000);
        OUT_BUZZER->setValue(low);
-       usleep(500000);
+       usleep(250000);
     }
     OUT_BUZZER->setValue(high);
-    sleep(1);
+    usleep(500000);
     OUT_BUZZER->setValue(low);
 }
 
 
+//-----------------------------------------------------------
+// SETUNARMED
+//----------------------------------------------------------
 void set_unarmed(void)
 {
-    if(!armed) return;
-    Logger::Write(Logger::INFO, "Alarmanlage unscharf geschaltet!");
-    armed       = false;
-    alarmactive = false;
+    Logger::Write(Logger::INFO, "alarmsystem DISARMED!");
+    cout << "unscharf" << endl;
+    armed         = false;
+    alarmactive   = false;
+    buzzeralarm   = false;
+    armed_blocked = true;
+    Logger::Write(Logger::INFO,"set alarm-actors off");
     switch_relais(OFF);
     RADIORELAIS->switch_xbee(OFF);
     CTRLFILE->WriteSystemArmed(false);
     OUT_LED->setValue(low);
     OUT_BUZZER->setValue(high);
-    sleep(2);
+    sleep(1);
     OUT_BUZZER->setValue(low);
 }
 
+//-----------------------------------------------------------
+// MAINTASK
+//----------------------------------------------------------
 void *MainTask(void *value)
 {
 uint8_t version;
-bool    armed_flag    = false;
-//bool    unarmed_flag  = false;
 static clock_t output_evt,tmeas_now;
 static int sectimer   = 0;
 static int mintimer   = 0;
 static int hourtimer  = 0;
 string autoalarmstr;
 string alarmtime;
-// bool   retval;
 
-
-   // TEST
+   // check relais
    version      = RELAIS->getFirmwareVersion();
-   if(version == 0) Logger::Write(Logger::ERROR, "Relaisausgänge arbeiten nicht!");
+   if(version == 0) Logger::Write(Logger::ERROR, "serial relais did not respond");
+   // switch off serial relais
    switch_relais(OFF);
+   // switch off radio relais
    RADIORELAIS->switch_xbee(OFF);
-
+   armed_blocked = false;
+   buzzeralarm   = false;
+   // zero time second event
    output_evt = 0;
+   // forever main task ...
    while(1) {
-       // INTERES SIGNAL PRGRAM END!!
+       // intern signal program end
        if(program_end) break;
        //-----------------------------------------------------------
-       // Sendesperre z.B. nicht mehr als einen Alarm/min. melden
+       // time second ticker
        //-----------------------------------------------------------
        tmeas_now = clock() / CLOCKS_PER_SEC;
        if(tmeas_now >= (output_evt + 1) ) {
@@ -264,58 +290,62 @@ string alarmtime;
                  if(hourtimer++ >= 24) hourtimer = 0;
               }
           }
-          // !!! ****** ALARMAUSGABE ****** !!!
-          //-----------------------------------------------------------
-          // SET ALARM OUTPUT ACTORS
-          //-----------------------------------------------------------
-          if(alarmactive && !armed_flag && armed) {
-              switch_relais(ON);
-              RADIORELAIS->switch_xbee(ON);
-              EMAILALARM->send();
-              // reset alarmtimecounter
-              output_evt = 0;
-              sectimer   = 0;
-              mintimer   = 0;
-              hourtimer  = 0;
-              armed_flag = true;
-          }
+          // Read Inifiles every Second
+          CTRLFILE->ReadActFiles();
+       }
+       // !!! ****** ALARMOUTPUT ****** !!!
+       //-----------------------------------------------------------
+       // set alarm output actors
+       //-----------------------------------------------------------
+       if(alarmactive && !armed_blocked && armed) {
+           Logger::Write(Logger::INFO,"set alarm-actors on");
+           cout << "set alarm actors" << endl;
+           switch_relais(ON);
+           RADIORELAIS->switch_xbee(ON);
+           EMAILALARM->send();
+           buzzeralarm = true;
+           sendsms     = true;
+           // reset alarm-time-counter
+           output_evt    = 0;
+           sectimer      = 0;
+           mintimer      = 0;
+           hourtimer     = 0;
+           armed_blocked = true;
        }
        //-----------------------------------------------------------
-       // Alarm Time to set unarmed
-       //-----------------------------------------------------------
-       if((mintimer >= ALARMTIME) && armed && armed_flag) {
-           set_unarmed();
-           armed_flag = false;
-       }
-       //-----------------------------------------------------------
-       // Buzzeralarm
-       //-----------------------------------------------------------
-       if(armed && armed_flag) {
+       // buzzer-alarm
+       //----------------------------------------------------------
+       if(buzzeralarm) {
            OUT_BUZZER->setValue(high);
-           usleep(250000);
+           usleep(100000);
            OUT_BUZZER->setValue(low);
-           usleep(250000);
+           usleep(100000);
        }
        //-----------------------------------------------------------
-       // Scharfschalter Einlesen
+       // alarm-time, waiting to set unarmed
        //-----------------------------------------------------------
-       // read control-file
-       CTRLFILE->ReadActFiles();
+       if((mintimer >= ALARMTIME) && alarmactive) {
+           Logger::Write(Logger::INFO,"alarmtime elapsed => set auto disarmed");
+           set_unarmed();
+       }
+       //-----------------------------------------------------------
+       // read input arm taster
+       //-----------------------------------------------------------
        if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
-            set_armed();
-            armed_flag = false;
-        }
-        //-----------------------------------------------------------
-        // Unscharfschalter Einlesen
-        //-----------------------------------------------------------
-        if(((IN_UNSCHARF->getNumericValue() == high) || !(CTRLFILE->armed_from_file)))  {
-            set_unarmed();
-            armed_flag = true;
-        }
+           set_armed();
+       }
+       //-----------------------------------------------------------
+       // read input unarm taster
+       //-----------------------------------------------------------
+       if(IN_UNSCHARF->getNumericValue() == high)  {
+           set_unarmed();
+       }
+       if(!(CTRLFILE->armed_from_file))  {
+           if(armed) set_unarmed();
+       }
    }
    pthread_exit(NULL);
 }
-
 
 
 //---------------------------------------------------------------------------
@@ -327,13 +357,16 @@ int main()
 {
 struct sigaction action;
 
-    Logger::Start(Logger::DEBUG, "/home/debian/Alarmsystem/files/alarm.log");
-    Logger::Write(Logger::INFO,  "initializing Alarmsystem");
+    Logger::Start(Logger::DEBUG, LOGFILENAME);
+    Logger::Write(Logger::INFO,  "initializing alarmsystem");
 
-    program_end = false;
-    sendsms     = false;
-    armed       = false;
-    alarmactive = false;
+    program_end   = false;
+    sendsms       = false;
+    armed         = false;
+    alarmactive   = false;
+    contactopen   = false;
+    buzzeralarm   = false;
+    armed_blocked = true;
 
     // Set Termination Handler
     action.sa_handler = termination_handler;
@@ -349,7 +382,7 @@ struct sigaction action;
     // INITIALISE TASKS
     if(!init_tasks()) return 0;
     // ... LEAVING ALARMSYS
-    Logger::Write(Logger::INFO, "...leaving Alarmsystem Process!");
+    Logger::Write(Logger::INFO, "...leaving alarmsystem process!");
     Logger::Stop();
     return 0;
 }

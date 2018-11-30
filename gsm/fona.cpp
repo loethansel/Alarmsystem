@@ -147,7 +147,7 @@ int retval;
        writeArr[length] = '\0';
        flush(bothDirection);
        if(!write(writeArr,length)) return false;
-       usleep(40000);
+       usleep(100000);
        read(readArr,100);
        rbuff = readArr;
        retval = rbuff.find("OK");
@@ -238,7 +238,7 @@ int retval;
                rbuff = credit_aschar;
                ss << rbuff;
                credit_numeric = stof(ss.str());
-               cout << "Guthaben: "  << ss.str() << endl;
+               cout << "credit: "  << ss.str() << endl;
             return true;
             }
         }
@@ -246,6 +246,104 @@ int retval;
    return false;
 }
 
+int FONA::SendSms(const string& telnumber, const string& text)
+{
+string rbuff;
+string tbuff;
+string tbuff1;
+size_t length;
+stringstream ss,ss1;
+stringstream rd;
+stringstream wr;
+int i;
+int retval;
+
+       // check the module with some AT\r commands
+       if(!LiveCheck()) return false;
+       // sms service ok?
+       flush(bothDirection);
+       tbuff.clear(); rbuff.clear();
+       tbuff = "AT+CMGS=?\r";
+       length = tbuff.copy(writeArr,tbuff.size(),0);
+       writeArr[length] = '\0';
+       if(!write(writeArr,length)) return false;
+       usleep(40000);
+       if(!read(readArr,100)) return false;
+       rbuff = readArr;
+       cout << rbuff << endl;
+       retval = rbuff.find("OK");
+       if(retval == -1) return false;
+
+       // Auf Textmode umstellen
+       flush(bothDirection);
+       tbuff.clear(); rbuff.clear();
+       tbuff = "AT+CMGF=1\r";
+       length = tbuff.copy(writeArr,tbuff.size(),0);
+       writeArr[length] = '\0';
+       if(!write(writeArr,length)) return false;
+       usleep(40000);
+       if(!read(readArr,100)) return false;
+       rbuff = readArr;
+       cout << rbuff << endl;
+       retval = rbuff.find("OK");
+       if(retval == -1) return false;
+
+       // send SMS header
+       flush(bothDirection);
+       tbuff.clear(); rbuff.clear();
+       // Phonenumber
+       ss.clear();
+       ss << "AT+CMGS=\"" << telnumber << "\"\r";
+       tbuff = ss.str();
+       length = tbuff.copy(writeArr,tbuff.size(),0);
+       writeArr[length] = '\0';
+       if(!write(writeArr,length)) return false;
+       usleep(100000);
+       if(!read(readArr,100)) return false;
+       rbuff = readArr;
+       cout << rbuff << endl;
+       retval = rbuff.find(">");
+       if(retval == -1) return false;
+       sleep(1);
+       // send SMS body
+       flush(bothDirection);
+       tbuff.clear();
+       tbuff = credit_aschar;
+       ss1.clear();
+       ss1 << text << " Q:" << dec << rxpegel_numeric << " G:" << tbuff << ".-EUR";
+       cout << ss1.str() << endl;
+       tbuff.clear();
+       tbuff = ss1.str();
+       cout << tbuff.c_str() << endl;
+       length = tbuff.copy(writeArr,tbuff.size(),0);
+       writeArr[length] = '\032';
+       if(!write(writeArr,length+1)) return false;
+       for(i=0;i<15;i++) {
+          sleep(1);
+          rbuff.clear();
+          read(readArr,100);
+          rbuff = readArr;
+          cout << rbuff << endl;
+          retval = rbuff.find("+CMGS:");
+          if(retval != -1) return true;
+       }
+       return false;
+       // todo:
+       // SMS aus dem Speicher wieder entfernen
+       // AT+CPMS=? => +CPMS: ("ME","MT","SM"),("ME","MT","SM"),("ME","MT","SM")
+       // AT+CPMS? => +CPMS: "ME",anz,55,"ME",anz,55,"ME",anz,55
+       // AT+CPMS="ME","ME","ME => +CPMS: anz,255,anz,255,anz,255
+       //
+}
+
+FONA::~FONA()
+{
+    close();
+    delete pwr_out;
+    delete pwr_in;
+    delete rst_out;
+}
+/*
 int FONA::SendSms(void)
 {
 string rbuff;
@@ -337,11 +435,4 @@ int retval;
        // AT+CPMS="ME","ME","ME => +CPMS: anz,255,anz,255,anz,255
        //
 }
-
-FONA::~FONA()
-{
-    close();
-    delete pwr_out;
-    delete pwr_in;
-    delete rst_out;
-}
+*/
