@@ -65,7 +65,7 @@ const string Logger::currentDateTime() {
     gettimeofday(&tmnow, NULL);
     int milli = (int)tmnow.tv_usec / 1000;
     tm = localtime(&tmnow.tv_sec);
-    strftime(buf,30,"%Y-%m-%d.%X", tm);
+    strftime(buf,30,"%Y-%m-%d %X", tm);
     strcat(buf,".");
     sprintf(usec_buf,"%03d",milli);
     strcat(buf,usec_buf);

@@ -35,15 +35,16 @@ public:
     bool poweredon;
     FONA(void);
     ~FONA(void);
-    int SendSms(const string& telnumber, const string& text);
-    int LiveCheck();
-    int RxLevelCheck();
-    int CreditCheck();
-    int Power_On(void);
-    int Power_Off(void);
-    int Reset_Module(void);
-    int IsRunning(void);
-    int IsStopped(void);
+    int  SendSms(const string& telnumber, const string& text);
+    bool deleteSMS_all(void);
+    int  LiveCheck(void);
+    int  RxLevelCheck(void);
+    int  CreditCheck(void);
+    int  Power_On(void);
+    int  Power_Off(void);
+    int  Reset_Module(void);
+    int  IsRunning(void);
+    int  IsStopped(void);
 private:
     int   rxpegel_numeric;
     char  rxpegel_aschar[10];

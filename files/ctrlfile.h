@@ -46,6 +46,7 @@ typedef struct {
     string lineumax[MAXLINES];
     string lineumin[MAXLINES];
     string linetext[MAXLINES];
+    string linelog;
 } s_lines;
 typedef struct {
     string protocol;
@@ -61,6 +62,7 @@ typedef struct {
 typedef struct {
     string number[MAX_NUM];
     string name[MAX_NUM];
+    string numbercnt;
 } s_num;
 typedef struct {
     string out[MAX_OUT];

@@ -80,7 +80,7 @@ bool retval;
         else       { Logger::Write(Logger::ERROR, "could not read INI file"); return false; }
     }
     // ACTION-CONTROL FILES
-    Logger::Write(Logger::INFO, "Read/Write Action Control-Files");
+    Logger::Write(Logger::INFO, "read/write action control-files");
     if(!CTRLFILE->CheckFileExists(ARMEDFILE)) {
         retval = CTRLFILE->WriteActFiles();
         if(retval) { Logger::Write(Logger::INFO, "creating controlfile"); }
@@ -117,7 +117,6 @@ void init_system(void)
     RADIORELAIS = new xbee;
     // EMAILALARM
     EMAILALARM = new email;
-
     // GPIO-OVERVIEW
     // GPIO_117 == P9.25  (OUT)
     // GPIO_115 == P9.27  (OUT)
@@ -259,7 +258,7 @@ static int sectimer   = 0;
 static int mintimer   = 0;
 static int hourtimer  = 0;
 string autoalarmstr;
-string alarmtime;
+int alarmtime;
 
    // check relais
    version      = RELAIS->getFirmwareVersion();
@@ -290,7 +289,7 @@ string alarmtime;
                  if(hourtimer++ >= 24) hourtimer = 0;
               }
           }
-          // Read Inifiles every Second
+          // Read action-files every Second
           CTRLFILE->ReadActFiles();
        }
        // !!! ****** ALARMOUTPUT ****** !!!
@@ -322,9 +321,10 @@ string alarmtime;
            usleep(100000);
        }
        //-----------------------------------------------------------
-       // alarm-time, waiting to set unarmed
+       // alarm-time, waiting to set unarmed in minutes
        //-----------------------------------------------------------
-       if((mintimer >= ALARMTIME) && alarmactive) {
+       alarmtime = stoi(CTRLFILE->ini.ALARM.alarmtime);
+       if((mintimer >= alarmtime) && alarmactive) {
            Logger::Write(Logger::INFO,"alarmtime elapsed => set auto disarmed");
            set_unarmed();
        }

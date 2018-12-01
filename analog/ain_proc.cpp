@@ -35,6 +35,7 @@ int     i;
 int     seccnt;
 bool    lineactive[MAXLINE];
 bool    linethreshold[MAXLINE];
+bool    prealert[4];
 float   umin, umax;
 // Analg Input Declaration
 BlackADC analog0(BlackLib::AIN0 );
@@ -80,7 +81,7 @@ typedef struct {
              for(i=0;i<MAXLINE;i++) {
                  if(lineactive[i]) {
                      ss.clear();
-                     ss << "value LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[0] << endl;
+                     ss << "value LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[i] << endl;
                      s.clear();
                      s = ss.str();
                      Logger::Write(Logger::DEBUG,s);
@@ -88,24 +89,40 @@ typedef struct {
              }
              seccnt = 0;
           }
-          // Read all the lines to maxline
+          // first read all the lines to maxline
           for(i=0;i<MAXLINE;i++) {
               // Values to standard out
               // cout << "LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[i] << endl;
               // check if value is off-limit
+              prealert[i] = false;
               umin = stof(CTRLFILE->ini.ALARM_LINE.lineumin[i]);
               umax = stof(CTRLFILE->ini.ALARM_LINE.lineumax[i]);
               if((valueFloat[i] >= umax) || (valueFloat[i] <= umin)) {
                   // set alarm if line is permitted
-                  if(lineactive[i]) {
-                      if(armed) alarmactive = true;
-                      linethreshold[i]      = true;
-                      // LOGGER!!!!!
-                      ss.clear();
-                      ss << "alarm LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[0] << endl;
-                      s.clear();
-                      s = ss.str();
-                      Logger::Write(Logger::INFO,s);
+                  if(lineactive[i]) { prealert[i] = true; linethreshold[i] = true; }
+              }
+          }
+          // wait 100ms to eleminate spikes and fail alerts
+          usleep(100000);
+          // reread the values
+          valueFloat[0] = analog0.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
+          valueFloat[1] = analog1.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
+          valueFloat[2] = analog2.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
+          valueFloat[3] = analog3.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
+          // second read all the lines to maxline
+          for(i=0;i<MAXLINE;i++) {
+              // check if value is off-limit
+              umin = stof(CTRLFILE->ini.ALARM_LINE.lineumin[i]);
+              umax = stof(CTRLFILE->ini.ALARM_LINE.lineumax[i]);
+              if((valueFloat[i] >= umax) || (valueFloat[i] <= umin)) {
+                  if(armed && (prealert[i] == true)) {
+                      alarmactive = true;
+                      if(CTRLFILE->ini.ALARM_LINE.linelog == "true") {
+                          ss.str("");
+                          ss << "alarm LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[i] << endl;
+                          s = ss.str();
+                          Logger::Write(Logger::INFO,s);
+                      }
                   }
               }
           }

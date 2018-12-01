@@ -25,6 +25,7 @@ static int  rssitimer   = 0;
 static int  livefailcnt = 0;
 static int  rssifailcnt = 0;
 static bool status      = false;
+int numbercnt;
 stringstream ss;
 string        s;
 int i;
@@ -40,7 +41,7 @@ FONA FONA1;
    output_evt = 0;
    // LOOP
    while(1) {
-       // INTERES SIGNAL PRGRAM END!!
+       // INTERES SIGNAL PRGRAM END!
        if(program_end) break;
 	   // second clock for time dependent functions
        tmeas_now = clock() / CLOCKS_PER_SEC;
@@ -66,12 +67,16 @@ FONA FONA1;
        if(sendsms) {
     	   // if live and rri send the email if not wait .....
            if(FONA1.fonarssi && FONA1.fonalive) {
-              for(i=0;i<1;i++) {
-                  ss.clear();
-                  ss << "Alarm Flugschule/Rundhalle!";
-                  s.clear();
-                  s = ss.str();
-                 if(FONA1.SendSms(CTRLFILE->ini.TEL_NUM.number[i],s)) FONA1.CreditCheck();
+              numbercnt = stoi(CTRLFILE->ini.TEL_NUM.numbercnt);
+              for(i=0;i<numbercnt;i++) {
+                 ss.clear();
+                 ss << CTRLFILE->ini.ALARM.alarmtext;
+                 s.clear();
+                 s = ss.str();
+                 if(FONA1.SendSms(CTRLFILE->ini.TEL_NUM.number[i],s)) {
+                     FONA1.CreditCheck();
+                     FONA1.deleteSMS_all();
+                 }
                  else {
                      Logger::Write(Logger::ERROR,"SMS-error: fona error during send SMS!");
                      cout << "fona error during SMS sending!" << endl;
