@@ -82,7 +82,20 @@ void Logger::Write(Priority priority, const string& message, const char* str, co
     {
         mutex m;
         string filename(file);
-
+        string tabs(" ");
+        int size = strlen(str);
+        if(size <= 8)
+        {
+            tabs = "        ";
+        }
+        else if(size <= 10)
+        {
+            tabs = "   ";
+        }
+        else if(size >= 12)
+        {
+            tabs = " ";
+        }
         m.lock();
         // identify current output stream
         ostream& stream = instance->fileStream.is_open() ? instance->fileStream : cout;
@@ -92,19 +105,22 @@ void Logger::Write(Priority priority, const string& message, const char* str, co
                 << PRIORITY_NAMES[priority]
                 << "] ["
                 << filename <<"::" << str << "]"
-                << ":  "
+                << ":"
+                << tabs
                 << message
+                << " (" << size << ")"
                 << endl;
-        /*
-        cout  << currentDateTime()
-                        << " ["
-                        << PRIORITY_NAMES[priority]
-                        << "] ["
-                        << filename <<"::" << str << "]"
-                        << ":\t"
-                        << message
-                        << endl;
-        */
+
+//        cout  << currentDateTime()
+//                        << " ["
+//                        << PRIORITY_NAMES[priority]
+//                        << "] ["
+//                        << filename <<"::" << str << "]"
+//                        << ":(" << size << ")"
+//                        << tabs
+//                        << message
+//                        << endl;
+
         m.unlock();
     }
 }

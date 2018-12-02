@@ -24,6 +24,7 @@ bool ctrlfile::CreateDefaultIniFile()
     SetValue("ADDRESS", "stadt",     "Fehrbellin");
     SetValue("ADDRESS", "plz",       "16833");
     SetValue("ALARM",   "autoalarm", "false");
+    SetValue("ALARM",   "autotime",  "30");
     SetValue("ALARM",   "autocnt",   "0");
     SetValue("ALARM",   "alarmtime", "20");
     SetValue("ALARM",   "alarmtext", "Flugschule/Rundhalle");
@@ -98,6 +99,7 @@ bool retval;
         ini.ADDRESS.stadt      = GetValue("ADDRESS" ,"stadt");
         ini.ALARM.autoalarm    = GetValue("ALARM"   ,"autoalarm");
         ini.ALARM.autocnt      = GetValue("ALARM"   ,"autocnt");
+        ini.ALARM.autotime     = GetValue("ALARM"   ,"autotime");
         ini.ALARM.alarmtime    = GetValue("ALARM"   ,"alarmtime");
         ini.ALARM.alarmtext    = GetValue("ALARM"   ,"alarmtext");
         ini.ALARM_LINE.lineactv[0] = GetValue("ALARM_LINE" ,"line1active");

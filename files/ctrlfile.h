@@ -37,6 +37,7 @@ typedef struct {
 } s_address;
 typedef struct {
     string autoalarm;
+    string autotime;
     string autocnt;
     string alarmtime;
     string alarmtext;

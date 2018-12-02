@@ -22,6 +22,7 @@ bool alarmactive;
 bool contactopen;
 bool buzzeralarm;
 bool armed_blocked;
+bool auto_disarmed;
 
 //---------------------------------------------------------------------------
 // Threads Declarations
@@ -212,6 +213,7 @@ bool retval;
     else       { Logger::Write(Logger::ERROR, "could not read INI file ==> exit"); program_end = true; }
     armed         = true;
     armed_blocked = false;
+    auto_disarmed = false;
     CTRLFILE->WriteSystemArmed(true);
     OUT_LED->setValue(high);
     for(i=0;i<3;i++) {
@@ -237,6 +239,7 @@ void set_unarmed(void)
     alarmactive   = false;
     buzzeralarm   = false;
     armed_blocked = true;
+    auto_disarmed = false;
     Logger::Write(Logger::INFO,"set alarm-actors off");
     switch_relais(OFF);
     RADIORELAIS->switch_xbee(OFF);
@@ -259,6 +262,7 @@ static int mintimer   = 0;
 static int hourtimer  = 0;
 string autoalarmstr;
 int alarmtime;
+int autoalarmtime;
 
    // check relais
    version      = RELAIS->getFirmwareVersion();
@@ -327,6 +331,22 @@ int alarmtime;
        if((mintimer >= alarmtime) && alarmactive) {
            Logger::Write(Logger::INFO,"alarmtime elapsed => set auto disarmed");
            set_unarmed();
+           auto_disarmed = true;
+           // reset alarm-time-counter for autoarm
+           output_evt    = 0;
+           sectimer      = 0;
+           mintimer      = 0;
+           hourtimer     = 0;
+
+       }
+       //-----------------------------------------------------------
+       // autoalarm
+       //-----------------------------------------------------------
+       autoalarmtime = stoi(CTRLFILE->ini.ALARM.autotime);
+       if(auto_disarmed && (CTRLFILE->ini.ALARM.autoalarm == "true") && (mintimer >= autoalarmtime)) {
+           Logger::Write(Logger::INFO,"autoalarm => set auto armed");
+           set_armed();
+           auto_disarmed = false;
        }
        //-----------------------------------------------------------
        // read input arm taster
@@ -335,7 +355,7 @@ int alarmtime;
            set_armed();
        }
        //-----------------------------------------------------------
-       // read input unarm taster
+       // read input disarm taster
        //-----------------------------------------------------------
        if(IN_UNSCHARF->getNumericValue() == high)  {
            set_unarmed();
@@ -366,6 +386,7 @@ struct sigaction action;
     alarmactive   = false;
     contactopen   = false;
     buzzeralarm   = false;
+    auto_disarmed = false;
     armed_blocked = true;
 
     // Set Termination Handler
