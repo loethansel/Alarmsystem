@@ -188,7 +188,6 @@ bool ctrlfile::ReadSystemArmed(void)
 {
 ifstream     armedfile;
 string       s;
-stringstream ss;
 const char numberfilename[] = ARMEDFILE;
 char       line[255];
 int        retval;

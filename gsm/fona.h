@@ -30,9 +30,13 @@ using namespace BlackLib;
 class FONA : public BlackUART
 {
 public:
-    bool fonalive;
-    bool fonarssi;
-    bool poweredon;
+    int   rxpegel_numeric;
+    char  rxpegel_aschar[10];
+    char  credit_aschar[10];
+    float credit_numeric;
+    bool  fonalive;
+    bool  fonarssi;
+    bool  poweredon;
     FONA(void);
     ~FONA(void);
     int  SendSms(const string& telnumber, const string& text);
@@ -46,10 +50,6 @@ public:
     int  IsRunning(void);
     int  IsStopped(void);
 private:
-    int   rxpegel_numeric;
-    char  rxpegel_aschar[10];
-    char  credit_aschar[10];
-    float credit_numeric;
     char  writeArr[255];
     char  readArr[255];
     int   InitIo(void);

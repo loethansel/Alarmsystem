@@ -28,11 +28,11 @@ pthread_t aintask;
 void *AinTask(void *value)
 {
 static  clock_t output_evt,tmeas_now;
+static  int     seccnt;
 float   valueFloat[4];
 stringstream ss;
 string       s;
 int     i;
-int     seccnt;
 bool    lineactive[MAXLINE];
 bool    linethreshold[MAXLINE];
 bool    prealert[4];
@@ -77,12 +77,12 @@ typedef struct {
               linethreshold[i]   = false;
           }
           // log the analog values every hour
-          if(seccnt++>= 3600) {
+          if(seccnt++ >= INFOTIME) {
              for(i=0;i<MAXLINE;i++) {
                  if(lineactive[i]) {
+                     ss.str("");
                      ss.clear();
                      ss << "value LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[i] << endl;
-                     s.clear();
                      s = ss.str();
                      Logger::Write(Logger::DEBUG,s);
                  }
@@ -119,6 +119,7 @@ typedef struct {
                       alarmactive = true;
                       if(CTRLFILE->ini.ALARM_LINE.linelog == "true") {
                           ss.str("");
+                          ss.clear();
                           ss << "alarm LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[i] << endl;
                           s = ss.str();
                           Logger::Write(Logger::INFO,s);

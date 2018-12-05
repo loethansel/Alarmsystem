@@ -25,6 +25,7 @@ static int  rssitimer   = 0;
 static int  livefailcnt = 0;
 static int  rssifailcnt = 0;
 static bool status      = false;
+static int  seccnt;
 int numbercnt;
 stringstream ss;
 string        s;
@@ -52,6 +53,18 @@ FONA FONA1;
           // check rssi only when live is true
           if(FONA1.fonalive)  rssitimer++;
        }
+       // Output to Logfile every hour
+       if(seccnt++ >= INFOTIME) {
+           ss.str("");
+           ss << "fona = "
+        	  << "alive: "  << (FONA1.fonalive?"ok":"bad")  << "; "
+              << "rx: "     << (FONA1.fonarssi?"ok":"bad")  << "; "
+			  << "rssi: "   << tostr(FONA1.rxpegel_numeric) << "; "
+			  << "credit: " << FONA1.credit_aschar          << ";"  << endl;
+           s = ss.str();
+           Logger::Write(Logger::INFO,s);
+           seccnt = 0;
+       }
        // armed-signal from mainthread, read files on every going "armed"
        if(armed && !status) {
            // read credit
@@ -69,9 +82,9 @@ FONA FONA1;
            if(FONA1.fonarssi && FONA1.fonalive) {
               numbercnt = stoi(CTRLFILE->ini.TEL_NUM.numbercnt);
               for(i=0;i<numbercnt;i++) {
+                 ss.str("");
                  ss.clear();
                  ss << CTRLFILE->ini.ALARM.alarmtext;
-                 s.clear();
                  s = ss.str();
                  if(FONA1.SendSms(CTRLFILE->ini.TEL_NUM.number[i],s)) {
                      FONA1.CreditCheck();

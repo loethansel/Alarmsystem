@@ -57,6 +57,8 @@ extern email        *EMAILALARM;
 
 #define ON  true
 #define OFF false
+// Infotime in seconds
+#define INFOTIME  3600
 // Alarmtime in minutes
 #define ALARMTIME 1
 #define LOGFILENAME "/home/debian/Alarmsystem/files/alarm.log"
