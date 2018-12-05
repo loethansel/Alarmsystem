@@ -2,6 +2,7 @@
 //---------------------------------------------------------------------------
 // INCLUDE
 //---------------------------------------------------------------------------
+#include <sys/time.h>
 #include "alarmsys.h"
 #include "logger/logger.h"
 
@@ -250,19 +251,98 @@ void set_unarmed(void)
     OUT_BUZZER->setValue(low);
 }
 
+// Interval Timer Handler
+void main_handler(int signum)
+{
+static int sectimer   = 0;
+static int mintimer   = 0;
+static int hourtimer  = 0;
+string autoalarmstr;
+static int alarmtime;
+static int autoalarmtime;
+
+    // Read action-files every Second
+    CTRLFILE->ReadActFiles();
+    sectimer++;
+    if(sectimer >= 60) { mintimer++; sectimer = 0; }
+    if(mintimer >= 60) { hourtimer++; mintimer= 0; sectimer = 0; }
+    // !!! ****** ALARMOUTPUT ****** !!!
+    //-----------------------------------------------------------
+    // set alarm output actors
+    //-----------------------------------------------------------
+    if(alarmactive && !armed_blocked && armed) {
+        Logger::Write(Logger::INFO,"set alarm-actors on");
+        cout << "set alarm actors" << endl;
+        switch_relais(ON);
+        RADIORELAIS->switch_xbee(ON);
+        EMAILALARM->send();
+        buzzeralarm = true;
+        sendsms     = true;
+        // reset alarm-time-counter
+        sectimer      = 0;
+        mintimer      = 0;
+        hourtimer     = 0;
+        armed_blocked = true;
+    }
+    //-----------------------------------------------------------
+    // buzzer-alarm
+    //----------------------------------------------------------
+    if(buzzeralarm) {
+        OUT_BUZZER->setValue(high);
+        usleep(100000);
+        OUT_BUZZER->setValue(low);
+        usleep(100000);
+    }
+    //-----------------------------------------------------------
+    // alarm-time, waiting to set unarmed in minutes
+    //-----------------------------------------------------------
+    alarmtime = stoi(CTRLFILE->ini.ALARM.alarmtime);
+    if((mintimer >= alarmtime) && alarmactive) {
+        Logger::Write(Logger::INFO,"alarmtime elapsed => set auto disarmed");
+        set_unarmed();
+        auto_disarmed = true;
+        // reset alarm-time-counter for autoarm
+        sectimer      = 0;
+        mintimer      = 0;
+        hourtimer     = 0;
+    }
+    //-----------------------------------------------------------
+    // autoalarm
+    //-----------------------------------------------------------
+    autoalarmtime = stoi(CTRLFILE->ini.ALARM.autotime);
+    if(auto_disarmed && (CTRLFILE->ini.ALARM.autoalarm == "true") && (mintimer >= autoalarmtime)) {
+        Logger::Write(Logger::INFO,"autoalarm => set auto armed");
+        set_armed();
+        auto_disarmed = false;
+    }
+    //-----------------------------------------------------------
+    // read input arm taster
+    //-----------------------------------------------------------
+    if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
+        set_armed();
+    }
+    //-----------------------------------------------------------
+    // read input disarm taster
+    //-----------------------------------------------------------
+    if(IN_UNSCHARF->getNumericValue() == high)  {
+        set_unarmed();
+    }
+    if(!(CTRLFILE->armed_from_file))  {
+        if(armed) set_unarmed();
+    }
+}
+
+
 //-----------------------------------------------------------
 // MAINTASK
 //----------------------------------------------------------
 void *MainTask(void *value)
 {
 uint8_t version;
-static clock_t output_evt,tmeas_now;
-static int sectimer   = 0;
-static int mintimer   = 0;
-static int hourtimer  = 0;
-string autoalarmstr;
-int alarmtime;
-int autoalarmtime;
+//struct  sigaction smain;
+//struct  itimerval timer0;
+
+//static clock_t output_evt,tmeas_now;
 
    // check relais
    version      = RELAIS->getFirmwareVersion();
@@ -273,96 +353,26 @@ int autoalarmtime;
    RADIORELAIS->switch_xbee(OFF);
    armed_blocked = false;
    buzzeralarm   = false;
-   // zero time second event
-   output_evt = 0;
+/*
+   // install timer_handler as the signal handler for SIGVTALRM.
+   memset (&smain, 0, sizeof (smain));
+   smain.sa_handler = &main_handler;
+   sigaction (SIGVTALRM, &smain, NULL);
+   // configure the timer to expire after 1000 msec...
+   timer0.it_value.tv_sec     = 0;
+   timer0.it_value.tv_usec    = 1000;
+   // ... and every second after that.
+   timer0.it_interval.tv_sec  = 1;
+   timer0.it_interval.tv_usec = 0;
+   // Start a virtual timer. It counts down whenever this process is executing.
+   setitimer (ITIMER_VIRTUAL, &timer0, NULL);
+*/
    // forever main task ...
    while(1) {
+	   main_handler(1);
        // intern signal program end
        if(program_end) break;
-       //-----------------------------------------------------------
-       // time second ticker
-       //-----------------------------------------------------------
-       tmeas_now = clock() / CLOCKS_PER_SEC;
-       if(tmeas_now >= (output_evt + 1) ) {
-          output_evt = clock() / CLOCKS_PER_SEC;
-          sectimer++;
-          if(sectimer >= 60) {
-              sectimer = 0;
-              if(mintimer++ >= 60) {
-                 mintimer = 0;
-                 if(hourtimer++ >= 24) hourtimer = 0;
-              }
-          }
-          // Read action-files every Second
-          CTRLFILE->ReadActFiles();
-       }
-       // !!! ****** ALARMOUTPUT ****** !!!
-       //-----------------------------------------------------------
-       // set alarm output actors
-       //-----------------------------------------------------------
-       if(alarmactive && !armed_blocked && armed) {
-           Logger::Write(Logger::INFO,"set alarm-actors on");
-           cout << "set alarm actors" << endl;
-           switch_relais(ON);
-           RADIORELAIS->switch_xbee(ON);
-           EMAILALARM->send();
-           buzzeralarm = true;
-           sendsms     = true;
-           // reset alarm-time-counter
-           output_evt    = 0;
-           sectimer      = 0;
-           mintimer      = 0;
-           hourtimer     = 0;
-           armed_blocked = true;
-       }
-       //-----------------------------------------------------------
-       // buzzer-alarm
-       //----------------------------------------------------------
-       if(buzzeralarm) {
-           OUT_BUZZER->setValue(high);
-           usleep(100000);
-           OUT_BUZZER->setValue(low);
-           usleep(100000);
-       }
-       //-----------------------------------------------------------
-       // alarm-time, waiting to set unarmed in minutes
-       //-----------------------------------------------------------
-       alarmtime = stoi(CTRLFILE->ini.ALARM.alarmtime);
-       if((mintimer >= alarmtime) && alarmactive) {
-           Logger::Write(Logger::INFO,"alarmtime elapsed => set auto disarmed");
-           set_unarmed();
-           auto_disarmed = true;
-           // reset alarm-time-counter for autoarm
-           output_evt    = 0;
-           sectimer      = 0;
-           mintimer      = 0;
-           hourtimer     = 0;
-
-       }
-       //-----------------------------------------------------------
-       // autoalarm
-       //-----------------------------------------------------------
-       autoalarmtime = stoi(CTRLFILE->ini.ALARM.autotime);
-       if(auto_disarmed && (CTRLFILE->ini.ALARM.autoalarm == "true") && (mintimer >= autoalarmtime)) {
-           Logger::Write(Logger::INFO,"autoalarm => set auto armed");
-           set_armed();
-           auto_disarmed = false;
-       }
-       //-----------------------------------------------------------
-       // read input arm taster
-       //-----------------------------------------------------------
-       if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
-           set_armed();
-       }
-       //-----------------------------------------------------------
-       // read input disarm taster
-       //-----------------------------------------------------------
-       if(IN_UNSCHARF->getNumericValue() == high)  {
-           set_unarmed();
-       }
-       if(!(CTRLFILE->armed_from_file))  {
-           if(armed) set_unarmed();
-       }
+	   usleep(100000);
    }
    pthread_exit(NULL);
 }

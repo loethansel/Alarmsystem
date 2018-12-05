@@ -182,7 +182,7 @@ int i;
         rbuff.clear();
         read(readArr,100);
         rbuff = readArr;
-        cout << rbuff << endl;
+        // cout << rbuff << endl;
         retval = rbuff.find("OK");
         if(retval != -1) {
             pos = rbuff.find_first_of(',',0);
@@ -194,7 +194,7 @@ int i;
                ss.clear();
                ss << rbuff;
                rxpegel_numeric = stoi(ss.str());
-               cout << "Empfangspegel: "  << ss.str() << endl;
+               // cout << "Empfangspegel: "  << ss.str() << endl;
                if(rxpegel_numeric == 0) {
                    this->fonarssi = false;
             	   return false;
@@ -230,7 +230,7 @@ int retval;
         read(readArr,100);
         rbuff.clear();
         rbuff = readArr;
-        cout << rbuff << endl;
+        // cout << rbuff << endl;
         retval = rbuff.find("EUR");
         if(retval != -1) {
             pos = rbuff.find_first_of('.',0);
@@ -242,7 +242,7 @@ int retval;
                ss.clear();
                ss << rbuff;
                credit_numeric = stof(ss.str());
-               cout << "credit: "  << ss.str() << endl;
+               // cout << "credit: "  << ss.str() << endl;
             return true;
             }
         }
