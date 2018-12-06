@@ -9,12 +9,21 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <pthread.h>
 #include <signal.h>
-#include <sys/time.h>
-
+#include <unistd.h>
+#include <ctime>
+#include <signal.h>
+#include <errno.h>
+#include <semaphore.h>
 
 #include "ain_proc.h"
 #include "../logger/logger.h"
+//---------------------------------------------------------------------------
+// DEFINES
+//---------------------------------------------------------------------------
+#define CLOCKID CLOCK_REALTIME
+#define SIG     SIGRTMIN
 //---------------------------------------------------------------------------
 // USING NAMESPACE
 //---------------------------------------------------------------------------
@@ -30,7 +39,7 @@ BlackADC analog2(BlackLib::AIN2 );
 BlackADC analog3(BlackLib::AIN3 );
 
 // Interval Timer Handler
-void measure_handler(int signum)
+void measure_handler(union sigval arg)
 {
 static int seccnt = 0;
 float        valueFloat[4];
@@ -110,58 +119,42 @@ float        umin, umax;
     else contactopen = true;
 }
 
+void create_timer_ainproc(int i)
+{
+timer_t timer_id;
+int status;
+struct itimerspec ts;
+struct sigevent se;
+long long nanosecs = 1000000 * 100 * i * i;
+
+    // Set the sigevent structure to cause the signal to be delivered by creating a new thread.
+    se.sigev_notify            = SIGEV_THREAD;
+    se.sigev_value.sival_ptr   = &timer_id;
+    se.sigev_notify_function   = measure_handler;
+    se.sigev_notify_attributes = NULL;
+
+    ts.it_value.tv_sec  = nanosecs / 1000000000;
+    ts.it_value.tv_nsec = nanosecs % 1000000000;
+    ts.it_interval.tv_sec  = 1;
+    ts.it_interval.tv_nsec = 200000;
+
+    status = timer_create(CLOCK_REALTIME, &se, &timer_id);
+    if (status == -1) cout << "Create timer" << endl;
+    // TODO maybe we'll need to have an array of itimerspec
+    status = timer_settime(timer_id, 0, &ts, 0);
+    if (status == -1) cout << "Set timer" << endl;
+}
 
 //---------------------------------------------------------------------------
 // AINTASK
 //---------------------------------------------------------------------------
 void *AinTask(void *value)
 {
-// static  clock_t output_evt,tmeas_now;
-//struct  sigaction sain;
-//struct  itimerval timer2;
-
-
-//   fptr_t  analogfkt[4];
-//   analogfkt[0] = analog0.getConvertedValue;
-/*
-typedef struct {
-    bool   account;
-    float  umin;
-    float  umax;
-} s_linestxt;
-typedef struct {
-    s_linestxt l[MAXLINES];
-    int    cnt;
-} s_lines;
-*/
-/*
-    // Install timer_handler as the signal handler for SIGVTALRM.
-    memset (&sain, 0, sizeof (sain));
-    sain.sa_handler = &measure_handler;
-    sigaction (SIGVTALRM, &sain, NULL);
-    // Configure the timer to expire after 1000 msec...
-    timer2.it_value.tv_sec     = 0;
-    timer2.it_value.tv_usec    = 3000;
-    // ... and every second after that.
-    timer2.it_interval.tv_sec  = 1;
-    timer2.it_interval.tv_usec = 20000;
-    // Start a virtual timer. It counts down whenever this process is executing.
-    setitimer (ITIMER_VIRTUAL, &timer2, NULL);
-*/
-    //output_evt = 0;
-    //seccnt     = 0;
+    create_timer_ainproc(10000);
     while(1) {
-    	measure_handler(1);
-        // INTERES SIGNAL PRGRAM END!!
+        // INTERES SIGNAL PROGRAM END!!
         if(program_end) break;
     	usleep(100000);
-        /*
-        // second clock for time dependent functions
-        tmeas_now = clock() / CLOCKS_PER_SEC;
-        if(tmeas_now >= (output_evt +1) ) {
-           output_evt = clock() / CLOCKS_PER_SEC;
-        }
-        */
     }
     pthread_exit(NULL);
 }

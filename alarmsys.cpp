@@ -252,7 +252,7 @@ void set_unarmed(void)
 }
 
 // Interval Timer Handler
-void main_handler(int signum)
+void main_handler(union sigval arg)
 {
 static int sectimer   = 0;
 static int mintimer   = 0;
@@ -315,22 +315,34 @@ static int autoalarmtime;
         set_armed();
         auto_disarmed = false;
     }
-    //-----------------------------------------------------------
-    // read input arm taster
-    //-----------------------------------------------------------
-    if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
-        set_armed();
-    }
-    //-----------------------------------------------------------
-    // read input disarm taster
-    //-----------------------------------------------------------
-    if(IN_UNSCHARF->getNumericValue() == high)  {
-        set_unarmed();
-    }
-    if(!(CTRLFILE->armed_from_file))  {
-        if(armed) set_unarmed();
-    }
 }
+
+void create_timer_mainproc(int i)
+{
+timer_t timer_id;
+int status;
+struct itimerspec ts;
+struct sigevent se;
+long long nanosecs = 1000000 * 100 * i * i;
+
+    // Set the sigevent structure to cause the signal to be delivered by creating a new thread.
+    se.sigev_notify            = SIGEV_THREAD;
+    se.sigev_value.sival_ptr   = &timer_id;
+    se.sigev_notify_function   = main_handler;
+    se.sigev_notify_attributes = NULL;
+
+    ts.it_value.tv_sec  = nanosecs / 1000000000;
+    ts.it_value.tv_nsec = nanosecs % 1000000000;
+    ts.it_interval.tv_sec  = 1;
+    ts.it_interval.tv_nsec = 300000;
+
+    status = timer_create(CLOCK_REALTIME, &se, &timer_id);
+    if (status == -1) cout << "Create timer" << endl;
+    // TODO maybe we'll need to have an array of itimerspec
+    status = timer_settime(timer_id, 0, &ts, 0);
+    if (status == -1) cout << "Set timer" << endl;
+}
+
 
 
 //-----------------------------------------------------------
@@ -339,10 +351,6 @@ static int autoalarmtime;
 void *MainTask(void *value)
 {
 uint8_t version;
-//struct  sigaction smain;
-//struct  itimerval timer0;
-
-//static clock_t output_evt,tmeas_now;
 
    // check relais
    version      = RELAIS->getFirmwareVersion();
@@ -353,26 +361,30 @@ uint8_t version;
    RADIORELAIS->switch_xbee(OFF);
    armed_blocked = false;
    buzzeralarm   = false;
-/*
-   // install timer_handler as the signal handler for SIGVTALRM.
-   memset (&smain, 0, sizeof (smain));
-   smain.sa_handler = &main_handler;
-   sigaction (SIGVTALRM, &smain, NULL);
-   // configure the timer to expire after 1000 msec...
-   timer0.it_value.tv_sec     = 0;
-   timer0.it_value.tv_usec    = 1000;
-   // ... and every second after that.
-   timer0.it_interval.tv_sec  = 1;
-   timer0.it_interval.tv_usec = 0;
-   // Start a virtual timer. It counts down whenever this process is executing.
-   setitimer (ITIMER_VIRTUAL, &timer0, NULL);
-*/
+
+   create_timer_mainproc(10000);
    // forever main task ...
    while(1) {
-	   main_handler(1);
        // intern signal program end
        if(program_end) break;
+       // free cpu-time
 	   usleep(100000);
+	    //-----------------------------------------------------------
+	    // read input arm taster
+	    //-----------------------------------------------------------
+	    if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
+	        set_armed();
+	    }
+	    //-----------------------------------------------------------
+	    // read input disarm taster
+	    //-----------------------------------------------------------
+	    if(IN_UNSCHARF->getNumericValue() == high)  {
+	        set_unarmed();
+	    }
+	    if(!(CTRLFILE->armed_from_file))  {
+	        if(armed) set_unarmed();
+	    }
+
    }
    pthread_exit(NULL);
 }

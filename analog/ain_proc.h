@@ -9,7 +9,6 @@
 #define AIN_PROC_H_
 
 // INCLUDE SYSTEM
-#include <pthread.h>
 #include <fstream>
 #include <string>
 #include <iostream>

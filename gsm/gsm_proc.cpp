@@ -21,7 +21,7 @@ pthread_t gsmtask;
 FONA FONA1;
 
 // Interval Timer Handler
-void gsm_handler (int signum)
+void gsm_handler(union sigval arg)
 {
 static int  livetimer   = 0;
 static int  rssitimer   = 0;
@@ -114,25 +114,36 @@ int i;
     }
 }
 
+void create_timer_gsmproc(int i)
+{
+timer_t timer_id;
+int status;
+struct itimerspec ts;
+struct sigevent se;
+long long nanosecs = 1000000 * 100 * i * i;
+
+    // Set the sigevent structure to cause the signal to be delivered by creating a new thread.
+    se.sigev_notify            = SIGEV_THREAD;
+    se.sigev_value.sival_ptr   = &timer_id;
+    se.sigev_notify_function   = gsm_handler;
+    se.sigev_notify_attributes = NULL;
+
+    ts.it_value.tv_sec  = nanosecs / 1000000000;
+    ts.it_value.tv_nsec = nanosecs % 1000000000;
+    ts.it_interval.tv_sec  = 1;
+    ts.it_interval.tv_nsec = 100000;
+
+    status = timer_create(CLOCK_REALTIME, &se, &timer_id);
+    if (status == -1) cout << "Create timer" << endl;
+    // TODO maybe we'll need to have an array of itimerspec
+    status = timer_settime(timer_id, 0, &ts, 0);
+    if (status == -1) cout << "Set timer" << endl;
+}
+
+
 // GSMTASK
 void *GsmTask(void *value)
 {
-//struct  sigaction sgsm;
-//struct  itimerval timer1;
-/*
-static clock_t output_evt,tmeas_now;
-static int  livetimer   = 0;
-static int  rssitimer   = 0;
-static int  livefailcnt = 0;
-static int  rssifailcnt = 0;
-static bool status      = false;
-static int  seccnt;
-int numbercnt;
-stringstream ss;
-string        s;
-int i;
-*/
-
    // start fona on power up
    if(!FONA1.Power_On()) {
        Logger::Write(Logger::ERROR,"poweron-Error: fona did not boot");
@@ -142,25 +153,9 @@ int i;
    } else {
        Logger::Write(Logger::INFO,"fona powered on");
    }
-/*
-   // Install timer_handler as the signal handler for SIGVTALRM.
-   memset (&sgsm, 0, sizeof (sgsm));
-   sgsm.sa_handler = &gsm_handler;
-   sigaction (SIGVTALRM, &sgsm, NULL);
-   // Configure the timer to expire after 1000 msec...
-   timer1.it_value.tv_sec     = 0;
-   timer1.it_value.tv_usec    = 2000;
-   // ... and every second after that.
-   timer1.it_interval.tv_sec  = 1;
-   timer1.it_interval.tv_usec = 10000;
-   // Start a virtual timer. It counts down whenever this process is executing.
-   setitimer (ITIMER_VIRTUAL, &timer1, NULL);
-*/
-//   output_evt = 0;
-//   seccnt     = 0;
+   create_timer_gsmproc(10000);
    // LOOP
    while(1) {
-	   gsm_handler(1);
        // INTERES SIGNAL PRGRAM END!
        if(program_end) break;
        usleep(100000);
