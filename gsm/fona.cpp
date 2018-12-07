@@ -5,6 +5,7 @@
  *      Author: Pandel
  */
 // INCLUDES
+#include "mutex"
 #include "fona.h"
 // Declaration
 
@@ -134,6 +135,7 @@ int FONA::Reset_Module(void)
 
 int FONA::LiveCheck()
 {
+mutex  mtx;
 string rbuff;
 string tbuff;
 size_t length;
@@ -146,9 +148,11 @@ int retval;
        length = tbuff.copy(writeArr,tbuff.size(),0);
        writeArr[length] = '\0';
        flush(bothDirection);
-       if(!write(writeArr,length)) return false;
+       mtx.lock();
+       write(writeArr,length);
        usleep(100000);
        read(readArr,100);
+       mtx.unlock();
        rbuff = readArr;
        retval = rbuff.find("OK");
        if(retval != -1) {
@@ -163,6 +167,7 @@ int retval;
 
 int FONA::RxLevelCheck()
 {
+mutex  mtx;
 string rbuff;
 string tbuff;
 size_t length;
@@ -176,7 +181,7 @@ int i;
     length = tbuff.copy(writeArr,tbuff.size(),0);
     writeArr[length] = '\0';
     flush(bothDirection);
-    if(!write(writeArr,length)) return false;
+    write(writeArr,length);
     for(i=0;i<5;i++) {
         sleep(1);
         rbuff.clear();
@@ -252,6 +257,7 @@ int retval;
 
 int FONA::SendSms(const string& telnumber, const string& text)
 {
+mutex  mtx;
 string rbuff;
 string tbuff;
 string tbuff1;
@@ -268,9 +274,11 @@ int retval;
        tbuff = "AT+CMGS=?\r";
        length = tbuff.copy(writeArr,tbuff.size(),0);
        writeArr[length] = '\0';
-       if(!write(writeArr,length)) return false;
+       mtx.lock();
+       write(writeArr,length);
        usleep(40000);
-       if(!read(readArr,100)) return false;
+       read(readArr,100);
+       mtx.unlock();
        rbuff = readArr;
        cout << rbuff << endl;
        retval = rbuff.find("OK");
@@ -282,9 +290,11 @@ int retval;
        tbuff = "AT+CMGF=1\r";
        length = tbuff.copy(writeArr,tbuff.size(),0);
        writeArr[length] = '\0';
-       if(!write(writeArr,length)) return false;
+       mtx.lock();
+       write(writeArr,length);
        usleep(40000);
-       if(!read(readArr,100)) return false;
+       read(readArr,100);
+       mtx.unlock();
        rbuff = readArr;
        cout << rbuff << endl;
        retval = rbuff.find("OK");
@@ -300,9 +310,11 @@ int retval;
        tbuff = ss.str();
        length = tbuff.copy(writeArr,tbuff.size(),0);
        writeArr[length] = '\0';
-       if(!write(writeArr,length)) return false;
+       mtx.lock();
+       write(writeArr,length);
        usleep(100000);
-       if(!read(readArr,100)) return false;
+       read(readArr,100);
+       mtx.unlock();
        rbuff = readArr;
        cout << rbuff << endl;
        retval = rbuff.find(">");
@@ -321,7 +333,9 @@ int retval;
        cout << tbuff.c_str() << endl;
        length = tbuff.copy(writeArr,tbuff.size(),0);
        writeArr[length] = '\032';
-       if(!write(writeArr,length+1)) return false;
+       mtx.lock();
+       write(writeArr,length+1);
+       mtx.unlock();
        for(i=0;i<15;i++) {
           sleep(1);
           rbuff.clear();

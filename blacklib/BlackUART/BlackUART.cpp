@@ -37,8 +37,10 @@ namespace BlackLib
 
     BlackUART::BlackUART(uartName uart, baudRate uartBaud, parity uartParity, stopBits uartStopBits, characterSize uartCharSize)
     {
-        this->dtUartFilename            = "BB-UART" + tostr(static_cast<int>(uart));
-        this->uartPortPath              = "/dev/ttyS" + tostr(static_cast<int>(uart));
+        this->dtUartFilename              = "BB-UART" + tostr(static_cast<int>(uart));
+        if(uart <  6) this->uartPortPath  = "/dev/ttyS" + tostr(static_cast<int>(uart));
+        if(uart == 6) this->uartPortPath  = "/dev/ttyUSB0";
+        if(uart == 7) this->uartPortPath  = "/dev/ttyUSB1";
 
         this->readBufferSize            = 1024;
         this->uartFD                    = -1;
@@ -54,8 +56,10 @@ namespace BlackLib
 
     BlackUART::BlackUART(uartName uart, BlackUartProperties uartProperties)
     {
-        this->dtUartFilename            = "BB-UART" + tostr(static_cast<int>(uart));
-        this->uartPortPath              = "/dev/ttyS" + tostr(static_cast<int>(uart));
+        this->dtUartFilename              = "BB-UART" + tostr(static_cast<int>(uart));
+        if(uart <  6) this->uartPortPath  = "/dev/ttyS" + tostr(static_cast<int>(uart));
+        if(uart == 6) this->uartPortPath  = "/dev/ttyUSB0";
+        if(uart == 7) this->uartPortPath  = "/dev/ttyUSB1";
 
         this->readBufferSize            = 1024;
         this->uartFD                    = -1;
@@ -71,8 +75,10 @@ namespace BlackLib
 
     BlackUART::BlackUART(uartName uart)
     {
-        this->dtUartFilename            = "BB-UART" + tostr(static_cast<int>(uart));
-        this->uartPortPath              = "/dev/ttyS" + tostr(static_cast<int>(uart));
+        this->dtUartFilename              = "BB-UART" + tostr(static_cast<int>(uart));
+        if(uart <  6) this->uartPortPath  = "/dev/ttyS" + tostr(static_cast<int>(uart));
+        if(uart == 6) this->uartPortPath  = "/dev/ttyUSB0";
+        if(uart == 7) this->uartPortPath  = "/dev/ttyUSB1";
 
         this->readBufferSize            = 1024;
         this->uartFD                    = -1;

@@ -54,9 +54,10 @@ namespace BlackLib
     enum uartName           {   UART1                   = 1,
                                 UART2                   = 2,
                                 UART4                   = 4,
-                                UART5                   = 5
+                                UART5                   = 5,
+                                UARTUSB0                = 6,
+                                UARTUSB1                = 7
                             };
-
 
     /*!
     * This enum is used for setting baud rate.

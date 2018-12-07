@@ -39,7 +39,8 @@ BlackADC analog2(BlackLib::AIN2 );
 BlackADC analog3(BlackLib::AIN3 );
 
 // Interval Timer Handler
-void measure_handler(union sigval arg)
+//void measure_handler(union sigval arg)
+void measure_handler(void)
 {
 static int seccnt = 0;
 float        valueFloat[4];
@@ -119,7 +120,7 @@ float        umin, umax;
     else contactopen = true;
 }
 
-void create_timer_ainproc(int i)
+void create_itimer_ainproc(int i)
 {
 timer_t timer_id;
 int status;
@@ -130,7 +131,7 @@ long long nanosecs = 1000000 * 100 * i * i;
     // Set the sigevent structure to cause the signal to be delivered by creating a new thread.
     se.sigev_notify            = SIGEV_THREAD;
     se.sigev_value.sival_ptr   = &timer_id;
-    se.sigev_notify_function   = measure_handler;
+    // se.sigev_notify_function   = measure_handler;
     se.sigev_notify_attributes = NULL;
 
     ts.it_value.tv_sec  = nanosecs / 1000000000;
@@ -150,11 +151,12 @@ long long nanosecs = 1000000 * 100 * i * i;
 //---------------------------------------------------------------------------
 void *AinTask(void *value)
 {
-    create_timer_ainproc(10000);
+    //create_itimer_ainproc(10000);
     while(1) {
         // INTERES SIGNAL PROGRAM END!!
         if(program_end) break;
-    	usleep(100000);
+        measure_handler();
+    	sleep(1);
     }
     pthread_exit(NULL);
 }

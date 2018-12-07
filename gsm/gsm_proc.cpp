@@ -21,7 +21,8 @@ pthread_t gsmtask;
 FONA FONA1;
 
 // Interval Timer Handler
-void gsm_handler(union sigval arg)
+//void gsm_handler(union sigval arg)
+void gsm_handler(void)
 {
 static int  livetimer   = 0;
 static int  rssitimer   = 0;
@@ -114,7 +115,7 @@ int i;
     }
 }
 
-void create_timer_gsmproc(int i)
+void create_itimer_gsmproc(int i)
 {
 timer_t timer_id;
 int status;
@@ -125,7 +126,7 @@ long long nanosecs = 1000000 * 100 * i * i;
     // Set the sigevent structure to cause the signal to be delivered by creating a new thread.
     se.sigev_notify            = SIGEV_THREAD;
     se.sigev_value.sival_ptr   = &timer_id;
-    se.sigev_notify_function   = gsm_handler;
+    // se.sigev_notify_function   = gsm_handler;
     se.sigev_notify_attributes = NULL;
 
     ts.it_value.tv_sec  = nanosecs / 1000000000;
@@ -153,12 +154,13 @@ void *GsmTask(void *value)
    } else {
        Logger::Write(Logger::INFO,"fona powered on");
    }
-   create_timer_gsmproc(10000);
+   // create_itimer_gsmproc(10000);
    // LOOP
    while(1) {
        // INTERES SIGNAL PRGRAM END!
        if(program_end) break;
-       usleep(100000);
+       gsm_handler();
+       sleep(1);
    }
    pthread_exit(NULL);
 }

@@ -2,7 +2,8 @@
 //---------------------------------------------------------------------------
 // INCLUDE
 //---------------------------------------------------------------------------
-#include <sys/time.h>
+#include <mutex>
+#include <ctime>
 #include "alarmsys.h"
 #include "logger/logger.h"
 
@@ -202,20 +203,23 @@ bool switch_relais(bool onoff)
 void set_armed(void)
 {
 int i;
-bool retval;
+bool  retval;
+mutex mtx;
 
     // only set to armed if not alarm line is active or armed yet
     if(armed || contactopen) return;
     cout << "scharf" << endl;
     Logger::Write(Logger::INFO, "alarmsystem ARMED!");
+    mtx.lock();
+    CTRLFILE->WriteSystemArmed(true);
     CTRLFILE->Clear();
     retval = CTRLFILE->ReadIniFile();
+    mtx.unlock();
     if(retval) { Logger::Write(Logger::INFO,  "reading INI file during getting armed"); }
     else       { Logger::Write(Logger::ERROR, "could not read INI file ==> exit"); program_end = true; }
     armed         = true;
     armed_blocked = false;
     auto_disarmed = false;
-    CTRLFILE->WriteSystemArmed(true);
     OUT_LED->setValue(high);
     for(i=0;i<3;i++) {
        OUT_BUZZER->setValue(high);
@@ -234,6 +238,8 @@ bool retval;
 //----------------------------------------------------------
 void set_unarmed(void)
 {
+mutex mtx;
+
     Logger::Write(Logger::INFO, "alarmsystem DISARMED!");
     cout << "unscharf" << endl;
     armed         = false;
@@ -242,9 +248,11 @@ void set_unarmed(void)
     armed_blocked = true;
     auto_disarmed = false;
     Logger::Write(Logger::INFO,"set alarm-actors off");
-    switch_relais(OFF);
+    mtx.lock();
     RADIORELAIS->switch_xbee(OFF);
+    switch_relais(OFF);
     CTRLFILE->WriteSystemArmed(false);
+    mtx.unlock();
     OUT_LED->setValue(low);
     OUT_BUZZER->setValue(high);
     sleep(1);
@@ -252,7 +260,8 @@ void set_unarmed(void)
 }
 
 // Interval Timer Handler
-void main_handler(union sigval arg)
+//void main_handler(union sigval arg)
+void main_handler(void)
 {
 static int sectimer   = 0;
 static int mintimer   = 0;
@@ -317,7 +326,7 @@ static int autoalarmtime;
     }
 }
 
-void create_timer_mainproc(int i)
+void create_itimer_mainproc(int i)
 {
 timer_t timer_id;
 int status;
@@ -328,7 +337,7 @@ long long nanosecs = 1000000 * 100 * i * i;
     // Set the sigevent structure to cause the signal to be delivered by creating a new thread.
     se.sigev_notify            = SIGEV_THREAD;
     se.sigev_value.sival_ptr   = &timer_id;
-    se.sigev_notify_function   = main_handler;
+    //se.sigev_notify_function   = main_handler;
     se.sigev_notify_attributes = NULL;
 
     ts.it_value.tv_sec  = nanosecs / 1000000000;
@@ -362,29 +371,29 @@ uint8_t version;
    armed_blocked = false;
    buzzeralarm   = false;
 
-   create_timer_mainproc(10000);
+   // create_itimer_mainproc(10000);
    // forever main task ...
    while(1) {
+       //-----------------------------------------------------------
+       // read input arm taster
+       //-----------------------------------------------------------
+       if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
+           set_armed();
+       }
+       //-----------------------------------------------------------
+       // read input disarm taster
+       //-----------------------------------------------------------
+       if(IN_UNSCHARF->getNumericValue() == high)  {
+           set_unarmed();
+       }
+       if(!(CTRLFILE->armed_from_file))  {
+           if(armed) set_unarmed();
+       }
        // intern signal program end
        if(program_end) break;
+       main_handler();
        // free cpu-time
-	   usleep(100000);
-	    //-----------------------------------------------------------
-	    // read input arm taster
-	    //-----------------------------------------------------------
-	    if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
-	        set_armed();
-	    }
-	    //-----------------------------------------------------------
-	    // read input disarm taster
-	    //-----------------------------------------------------------
-	    if(IN_UNSCHARF->getNumericValue() == high)  {
-	        set_unarmed();
-	    }
-	    if(!(CTRLFILE->armed_from_file))  {
-	        if(armed) set_unarmed();
-	    }
-
+	   sleep(1);
    }
    pthread_exit(NULL);
 }

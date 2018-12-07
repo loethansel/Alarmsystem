@@ -30,6 +30,9 @@ public:
 	xbee();
 	bool switch_xbee(bool state);
 	virtual ~xbee();
+private:
+    char  writeArr[255];
+    char  readArr[255];
 };
 
 #endif /* XBEE_H_ */
