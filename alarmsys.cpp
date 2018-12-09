@@ -81,6 +81,7 @@ static bool pressedlock = false;
             if(armed) {
                 ema.set_unarmed();
                 autoalarmtimer.StopTimer();
+                disarmtimer.StopTimer();
             }
         }
         cnt = 0;
@@ -98,6 +99,7 @@ static bool pressedlock = false;
         if(!pressedlock) {
             ema.set_unarmed();
             autoalarmtimer.StopTimer();
+            disarmtimer.StopTimer();
         }
         pressedlock = true;
     } else pressedlock = false;
@@ -360,6 +362,7 @@ void Alert::main_handler(void)
     if(alarmactive && !armed_blocked && armed) {
         Logger::Write(Logger::INFO,"set alarm-actors on");
         cout << "set alarm actors" << endl;
+        buzzertimer.StartTimer();
         switch_relais(ON);
         RADIORELAIS->switch_xbee(ON);
         EMAILALARM->send();
@@ -396,7 +399,6 @@ int     autoalarmtime;
    autoalarmtimer.Create_Timer(0x00,(autoalarmtime*60));
    // set alarm buzzer cyclic
    buzzertimer.Create_Timer(100,0);
-   buzzertimer.StartTimer();
    // read digital an file inputs cyclic
    inputtimer.Create_Timer(100,0);
    inputtimer.StartTimer();
