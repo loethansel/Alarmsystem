@@ -8,6 +8,7 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include timer/subdir.mk
 -include rtc/subdir.mk
 -include relais/subdir.mk
 -include radio/subdir.mk

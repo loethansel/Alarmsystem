@@ -5,7 +5,6 @@
  *      Author: Pandel
  */
 // INCLUDES
-#include "mutex"
 #include "fona.h"
 // Declaration
 
@@ -65,12 +64,12 @@ unsigned int i;
         // check pwrpin and AT\r => OK
         if(IsRunning()) {
             if(LiveCheck()) {
-            	this->poweredon = true;
-            	return true;
+                this->poweredon = true;
+                return true;
             }
         }
     }
-	this->poweredon = false;
+    this->poweredon = false;
     return false;
 }
 
@@ -135,7 +134,6 @@ int FONA::Reset_Module(void)
 
 int FONA::LiveCheck()
 {
-mutex  mtx;
 string rbuff;
 string tbuff;
 size_t length;
@@ -148,16 +146,14 @@ int retval;
        length = tbuff.copy(writeArr,tbuff.size(),0);
        writeArr[length] = '\0';
        flush(bothDirection);
-       mtx.lock();
-       write(writeArr,length);
+       if(!write(writeArr,length)) return false;
        usleep(100000);
        read(readArr,100);
-       mtx.unlock();
        rbuff = readArr;
        retval = rbuff.find("OK");
        if(retval != -1) {
            this->fonalive = true;
-    	   return true;
+           return true;
        }
        sleep(1);
    }
@@ -167,7 +163,6 @@ int retval;
 
 int FONA::RxLevelCheck()
 {
-mutex  mtx;
 string rbuff;
 string tbuff;
 size_t length;
@@ -181,7 +176,7 @@ int i;
     length = tbuff.copy(writeArr,tbuff.size(),0);
     writeArr[length] = '\0';
     flush(bothDirection);
-    write(writeArr,length);
+    if(!write(writeArr,length)) return false;
     for(i=0;i<5;i++) {
         sleep(1);
         rbuff.clear();
@@ -202,11 +197,11 @@ int i;
                // cout << "Empfangspegel: "  << ss.str() << endl;
                if(rxpegel_numeric == 0) {
                    this->fonarssi = false;
-            	   return false;
+                   return false;
                }
                else {
                    this->fonarssi = true;
-            	   return true;
+                   return true;
                }
             }
         }
@@ -257,7 +252,6 @@ int retval;
 
 int FONA::SendSms(const string& telnumber, const string& text)
 {
-mutex  mtx;
 string rbuff;
 string tbuff;
 string tbuff1;
@@ -274,11 +268,9 @@ int retval;
        tbuff = "AT+CMGS=?\r";
        length = tbuff.copy(writeArr,tbuff.size(),0);
        writeArr[length] = '\0';
-       mtx.lock();
-       write(writeArr,length);
+       if(!write(writeArr,length)) return false;
        usleep(40000);
-       read(readArr,100);
-       mtx.unlock();
+       if(!read(readArr,100)) return false;
        rbuff = readArr;
        cout << rbuff << endl;
        retval = rbuff.find("OK");
@@ -290,11 +282,9 @@ int retval;
        tbuff = "AT+CMGF=1\r";
        length = tbuff.copy(writeArr,tbuff.size(),0);
        writeArr[length] = '\0';
-       mtx.lock();
-       write(writeArr,length);
+       if(!write(writeArr,length)) return false;
        usleep(40000);
-       read(readArr,100);
-       mtx.unlock();
+       if(!read(readArr,100)) return false;
        rbuff = readArr;
        cout << rbuff << endl;
        retval = rbuff.find("OK");
@@ -310,11 +300,9 @@ int retval;
        tbuff = ss.str();
        length = tbuff.copy(writeArr,tbuff.size(),0);
        writeArr[length] = '\0';
-       mtx.lock();
-       write(writeArr,length);
+       if(!write(writeArr,length)) return false;
        usleep(100000);
-       read(readArr,100);
-       mtx.unlock();
+       if(!read(readArr,100)) return false;
        rbuff = readArr;
        cout << rbuff << endl;
        retval = rbuff.find(">");
@@ -333,9 +321,7 @@ int retval;
        cout << tbuff.c_str() << endl;
        length = tbuff.copy(writeArr,tbuff.size(),0);
        writeArr[length] = '\032';
-       mtx.lock();
-       write(writeArr,length+1);
-       mtx.unlock();
+       if(!write(writeArr,length+1)) return false;
        for(i=0;i<15;i++) {
           sleep(1);
           rbuff.clear();

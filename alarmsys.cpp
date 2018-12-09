@@ -6,6 +6,7 @@
 #include <ctime>
 #include "alarmsys.h"
 #include "logger/logger.h"
+#include "timer/EmaTimer.h"
 
 //---------------------------------------------------------------------------
 // USING NAMESPACE
@@ -24,7 +25,6 @@ bool alarmactive;
 bool contactopen;
 bool buzzeralarm;
 bool armed_blocked;
-bool auto_disarmed;
 
 //---------------------------------------------------------------------------
 // Threads Declarations
@@ -33,7 +33,21 @@ pthread_t maintask;
 //---------------------------------------------------------------------------
 // FOREWARD Declarations
 //---------------------------------------------------------------------------
+void input_handler(union sigval arg);
+void buzzer_handler(union sigval arg);
+void disarm_handler(union sigval arg);
+void autoalarm_handler(union sigval arg);
+void termination_handler(int sig);
 void *MainTask(void *value);
+//---------------------------------------------------------------------------
+// CLASS Declarations
+//---------------------------------------------------------------------------
+Alert    ema;
+EmaTimer inputtimer(input_handler);
+EmaTimer buzzertimer(buzzer_handler);
+EmaTimer disarmtimer(disarm_handler);
+EmaTimer autoalarmtimer(autoalarm_handler);
+
 // OUTPUTS
 BlackGPIO    *OUT_BUZZER;
 BlackGPIO    *OUT_LED;
@@ -49,6 +63,82 @@ xbee         *RADIORELAIS;
 // EMAIL
 email        *EMAILALARM;
 
+
+//----------------------------------------------------------
+// INPUT_HANDLER 100ms
+//----------------------------------------------------------
+void input_handler(union sigval arg)
+{
+static int  cnt         = 0;
+static bool pressedlock = false;
+
+    //-----------------------------------------------------------
+    // read input arm file every second
+    //-----------------------------------------------------------
+    if(cnt++ >= 10) {
+        CTRLFILE->ReadActFiles();
+        if(!(CTRLFILE->armed_from_file))  {
+            if(armed) {
+                ema.set_unarmed();
+                autoalarmtimer.StopTimer();
+            }
+        }
+        cnt = 0;
+    }
+    //-----------------------------------------------------------
+    // read input arm taster
+    //-----------------------------------------------------------
+    if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
+        ema.set_armed();
+    }
+    //-----------------------------------------------------------
+    // read input disarm taster
+    //-----------------------------------------------------------
+    if(IN_UNSCHARF->getNumericValue() == high)  {
+        if(!pressedlock) {
+            ema.set_unarmed();
+            autoalarmtimer.StopTimer();
+        }
+        pressedlock = true;
+    } else pressedlock = false;
+    inputtimer.StartTimer();
+}
+
+//----------------------------------------------------------
+// BUZZER_HANDLER 500ms
+//----------------------------------------------------------
+void buzzer_handler(union sigval arg)
+{
+    if(buzzeralarm) {
+        OUT_BUZZER->setValue(high);
+        usleep(100000);
+        OUT_BUZZER->setValue(low);
+        usleep(100000);
+    }
+    buzzertimer.StartTimer();
+}
+
+//----------------------------------------------------------
+// DISARM_HANDLER
+//----------------------------------------------------------
+void disarm_handler(union sigval arg)
+{
+    Logger::Write(Logger::INFO,"alarmtime elapsed => set auto disarmed");
+    ema.set_unarmed();
+    if(CTRLFILE->ini.ALARM.autoalarm == "true") autoalarmtimer.StartTimer();
+}
+
+//----------------------------------------------------------
+// AUTOALARM_HANDLER
+//----------------------------------------------------------
+void autoalarm_handler(union sigval arg)
+{
+static int autocount = 0;
+
+    Logger::Write(Logger::INFO,"autoalarm => set auto armed");
+    if(++autocount <= stoi(CTRLFILE->ini.ALARM.autocnt)) ema.set_armed();
+}
+
 //----------------------------------------------------------
 // TERMINATION_HANDLER
 //----------------------------------------------------------
@@ -62,11 +152,12 @@ string        s;
    Logger::Write(Logger::INFO,s);
    exit(0);
 }
+
 //-----------------------------------------------------------
 // FILE_WORK
 // READING OR WRITING FILES
 //----------------------------------------------------------
-bool file_work(void)
+bool Alert::file_work(void)
 {
 bool retval;
 
@@ -100,7 +191,7 @@ bool retval;
 //-----------------------------------------------------------
 // INIT_SYSTEM
 //----------------------------------------------------------
-void init_system(void)
+void Alert::init_system(void)
 {
     // INPUTS
     Logger::Write(Logger::INFO, "input GPIO's exported to /sys/class/gpio");
@@ -140,7 +231,7 @@ void init_system(void)
 //-----------------------------------------------------------
 // INIT_TASKS
 //----------------------------------------------------------
-bool init_tasks(void)
+bool Alert::init_tasks(void)
 {
     Logger::Write(Logger::INFO, "intialize tasks");
     // Create Main-Task
@@ -179,7 +270,7 @@ bool init_tasks(void)
 //-----------------------------------------------------------
 // SWITCH_RELAIS (serial)
 //----------------------------------------------------------
-bool switch_relais(bool onoff)
+bool Alert::switch_relais(bool onoff)
 {   // switch on serial relais
     if(onoff) {
         RELAIS->turn_on_channel(1);
@@ -200,7 +291,7 @@ bool switch_relais(bool onoff)
 //-----------------------------------------------------------
 // SET_ARMED
 //----------------------------------------------------------
-void set_armed(void)
+void Alert::set_armed(void)
 {
 int i;
 bool  retval;
@@ -219,7 +310,6 @@ mutex mtx;
     else       { Logger::Write(Logger::ERROR, "could not read INI file ==> exit"); program_end = true; }
     armed         = true;
     armed_blocked = false;
-    auto_disarmed = false;
     OUT_LED->setValue(high);
     for(i=0;i<3;i++) {
        OUT_BUZZER->setValue(high);
@@ -236,17 +326,17 @@ mutex mtx;
 //-----------------------------------------------------------
 // SETUNARMED
 //----------------------------------------------------------
-void set_unarmed(void)
+void Alert::set_unarmed(void)
 {
 mutex mtx;
 
     Logger::Write(Logger::INFO, "alarmsystem DISARMED!");
+    buzzertimer.StopTimer();
     cout << "unscharf" << endl;
     armed         = false;
     alarmactive   = false;
     buzzeralarm   = false;
     armed_blocked = true;
-    auto_disarmed = false;
     Logger::Write(Logger::INFO,"set alarm-actors off");
     mtx.lock();
     RADIORELAIS->switch_xbee(OFF);
@@ -261,22 +351,10 @@ mutex mtx;
 
 // Interval Timer Handler
 //void main_handler(union sigval arg)
-void main_handler(void)
+void Alert::main_handler(void)
 {
-static int sectimer   = 0;
-static int mintimer   = 0;
-static int hourtimer  = 0;
-string autoalarmstr;
-static int alarmtime;
-static int autoalarmtime;
-
-    // Read action-files every Second
-    CTRLFILE->ReadActFiles();
-    sectimer++;
-    if(sectimer >= 60) { mintimer++; sectimer = 0; }
-    if(mintimer >= 60) { hourtimer++; mintimer= 0; sectimer = 0; }
-    // !!! ****** ALARMOUTPUT ****** !!!
     //-----------------------------------------------------------
+    // !!! ****** ALARMOUTPUT ****** !!!
     // set alarm output actors
     //-----------------------------------------------------------
     if(alarmactive && !armed_blocked && armed) {
@@ -287,72 +365,10 @@ static int autoalarmtime;
         EMAILALARM->send();
         buzzeralarm = true;
         sendsms     = true;
-        // reset alarm-time-counter
-        sectimer      = 0;
-        mintimer      = 0;
-        hourtimer     = 0;
+        disarmtimer.StartTimer();
         armed_blocked = true;
     }
-    //-----------------------------------------------------------
-    // buzzer-alarm
-    //----------------------------------------------------------
-    if(buzzeralarm) {
-        OUT_BUZZER->setValue(high);
-        usleep(100000);
-        OUT_BUZZER->setValue(low);
-        usleep(100000);
-    }
-    //-----------------------------------------------------------
-    // alarm-time, waiting to set unarmed in minutes
-    //-----------------------------------------------------------
-    alarmtime = stoi(CTRLFILE->ini.ALARM.alarmtime);
-    if((mintimer >= alarmtime) && alarmactive) {
-        Logger::Write(Logger::INFO,"alarmtime elapsed => set auto disarmed");
-        set_unarmed();
-        auto_disarmed = true;
-        // reset alarm-time-counter for autoarm
-        sectimer      = 0;
-        mintimer      = 0;
-        hourtimer     = 0;
-    }
-    //-----------------------------------------------------------
-    // autoalarm
-    //-----------------------------------------------------------
-    autoalarmtime = stoi(CTRLFILE->ini.ALARM.autotime);
-    if(auto_disarmed && (CTRLFILE->ini.ALARM.autoalarm == "true") && (mintimer >= autoalarmtime)) {
-        Logger::Write(Logger::INFO,"autoalarm => set auto armed");
-        set_armed();
-        auto_disarmed = false;
-    }
 }
-
-void create_itimer_mainproc(int i)
-{
-timer_t timer_id;
-int status;
-struct itimerspec ts;
-struct sigevent se;
-long long nanosecs = 1000000 * 100 * i * i;
-
-    // Set the sigevent structure to cause the signal to be delivered by creating a new thread.
-    se.sigev_notify            = SIGEV_THREAD;
-    se.sigev_value.sival_ptr   = &timer_id;
-    //se.sigev_notify_function   = main_handler;
-    se.sigev_notify_attributes = NULL;
-
-    ts.it_value.tv_sec  = nanosecs / 1000000000;
-    ts.it_value.tv_nsec = nanosecs % 1000000000;
-    ts.it_interval.tv_sec  = 1;
-    ts.it_interval.tv_nsec = 300000;
-
-    status = timer_create(CLOCK_REALTIME, &se, &timer_id);
-    if (status == -1) cout << "Create timer" << endl;
-    // TODO maybe we'll need to have an array of itimerspec
-    status = timer_settime(timer_id, 0, &ts, 0);
-    if (status == -1) cout << "Set timer" << endl;
-}
-
-
 
 //-----------------------------------------------------------
 // MAINTASK
@@ -360,44 +376,60 @@ long long nanosecs = 1000000 * 100 * i * i;
 void *MainTask(void *value)
 {
 uint8_t version;
+int     alarmtime;
+int     autoalarmtime;
 
    // check relais
    version      = RELAIS->getFirmwareVersion();
    if(version == 0) Logger::Write(Logger::ERROR, "serial relais did not respond");
    // switch off serial relais
-   switch_relais(OFF);
+   ema.switch_relais(OFF);
    // switch off radio relais
    RADIORELAIS->switch_xbee(OFF);
    armed_blocked = false;
    buzzeralarm   = false;
+   // setuup for disarm after alarm
+   alarmtime = stoi(CTRLFILE->ini.ALARM.alarmtime);
+   disarmtimer.Create_Timer(0x00,(alarmtime*60));
+   // setup for autoarm after alarm ends
+   autoalarmtime = stoi(CTRLFILE->ini.ALARM.autotime);
+   autoalarmtimer.Create_Timer(0x00,(autoalarmtime*60));
+   // set alarm buzzer cyclic
+   buzzertimer.Create_Timer(100,0);
+   buzzertimer.StartTimer();
+   // read digital an file inputs cyclic
+   inputtimer.Create_Timer(100,0);
+   inputtimer.StartTimer();
 
-   // create_itimer_mainproc(10000);
    // forever main task ...
    while(1) {
-       //-----------------------------------------------------------
-       // read input arm taster
-       //-----------------------------------------------------------
-       if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
-           set_armed();
-       }
-       //-----------------------------------------------------------
-       // read input disarm taster
-       //-----------------------------------------------------------
-       if(IN_UNSCHARF->getNumericValue() == high)  {
-           set_unarmed();
-       }
-       if(!(CTRLFILE->armed_from_file))  {
-           if(armed) set_unarmed();
-       }
        // intern signal program end
        if(program_end) break;
-       main_handler();
+       ema.main_handler();
        // free cpu-time
 	   sleep(1);
    }
    pthread_exit(NULL);
 }
 
+Alert::Alert()
+{
+    program_end   = false;
+    sendsms       = false;
+    armed         = false;
+    alarmactive   = false;
+    contactopen   = false;
+    buzzeralarm   = false;
+    armed_blocked = true;
+}
+
+Alert::~Alert()
+{
+    // ... LEAVING ALARMSYS
+    Logger::Write(Logger::INFO, "...leaving alarmsystem process!");
+    Logger::Stop();
+    cout << "...bye bye" << endl;
+}
 
 //---------------------------------------------------------------------------
 // MAIN
@@ -411,15 +443,6 @@ struct sigaction action;
     Logger::Start(Logger::DEBUG, LOGFILENAME);
     Logger::Write(Logger::INFO,  "initializing alarmsystem");
 
-    program_end   = false;
-    sendsms       = false;
-    armed         = false;
-    alarmactive   = false;
-    contactopen   = false;
-    buzzeralarm   = false;
-    auto_disarmed = false;
-    armed_blocked = true;
-
     // Set Termination Handler
     action.sa_handler = termination_handler;
     sigemptyset (&action.sa_mask);
@@ -428,14 +451,11 @@ struct sigaction action;
     sigaction (SIGINT,  &action, NULL);
 
     // IO'S AND CLASSES
-    init_system();
+    ema.init_system();
     // FILE READING WRITING
-    if(!file_work()) return 0;
+    if(!ema.file_work()) return 0;
     // INITIALISE TASKS
-    if(!init_tasks()) return 0;
-    // ... LEAVING ALARMSYS
-    Logger::Write(Logger::INFO, "...leaving alarmsystem process!");
-    Logger::Stop();
+    if(ema.init_tasks()) return 0;
     return 0;
 }
 

@@ -64,4 +64,22 @@ extern email        *EMAILALARM;
 #define ALARMTIME 1
 #define LOGFILENAME "/home/debian/Alarmsystem/files/alarm.log"
 
+
+class Alert
+{
+public:
+    Alert();
+    bool file_work(void);
+    void init_system(void);
+    bool init_tasks(void);
+    bool switch_relais(bool onoff);
+    void set_armed(void);
+    void set_unarmed(void);
+    void main_handler(void);
+    void create_itimer_mainproc(int i);
+    virtual ~Alert();
+private:
+};
+
+
 #endif /* ALARMSYS_H_ */

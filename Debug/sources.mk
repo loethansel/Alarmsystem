@@ -77,4 +77,5 @@ logger \
 radio \
 relais \
 rtc \
+timer \
 

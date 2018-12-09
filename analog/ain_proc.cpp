@@ -22,8 +22,6 @@
 //---------------------------------------------------------------------------
 // DEFINES
 //---------------------------------------------------------------------------
-#define CLOCKID CLOCK_REALTIME
-#define SIG     SIGRTMIN
 //---------------------------------------------------------------------------
 // USING NAMESPACE
 //---------------------------------------------------------------------------
@@ -39,7 +37,6 @@ BlackADC analog2(BlackLib::AIN2 );
 BlackADC analog3(BlackLib::AIN3 );
 
 // Interval Timer Handler
-//void measure_handler(union sigval arg)
 void measure_handler(void)
 {
 static int seccnt = 0;
@@ -120,38 +117,11 @@ float        umin, umax;
     else contactopen = true;
 }
 
-void create_itimer_ainproc(int i)
-{
-timer_t timer_id;
-int status;
-struct itimerspec ts;
-struct sigevent se;
-long long nanosecs = 1000000 * 100 * i * i;
-
-    // Set the sigevent structure to cause the signal to be delivered by creating a new thread.
-    se.sigev_notify            = SIGEV_THREAD;
-    se.sigev_value.sival_ptr   = &timer_id;
-    // se.sigev_notify_function   = measure_handler;
-    se.sigev_notify_attributes = NULL;
-
-    ts.it_value.tv_sec  = nanosecs / 1000000000;
-    ts.it_value.tv_nsec = nanosecs % 1000000000;
-    ts.it_interval.tv_sec  = 1;
-    ts.it_interval.tv_nsec = 200000;
-
-    status = timer_create(CLOCK_REALTIME, &se, &timer_id);
-    if (status == -1) cout << "Create timer" << endl;
-    // TODO maybe we'll need to have an array of itimerspec
-    status = timer_settime(timer_id, 0, &ts, 0);
-    if (status == -1) cout << "Set timer" << endl;
-}
-
 //---------------------------------------------------------------------------
 // AINTASK
 //---------------------------------------------------------------------------
 void *AinTask(void *value)
 {
-    //create_itimer_ainproc(10000);
     while(1) {
         // INTERES SIGNAL PROGRAM END!!
         if(program_end) break;
