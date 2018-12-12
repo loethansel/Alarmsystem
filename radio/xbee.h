@@ -36,3 +36,8 @@ private:
 };
 
 #endif /* XBEE_H_ */
+//https://github.com/ratmandu/node-red-contrib-zblight
+//https://github.com/jimmo/home-automation
+//https://github.com/bright-tools/xbeeapi
+//https://github.com/andrewrapp/xbee-arduino
+//https://www.digi.com/support/forum/61290/s2c-and-osram-lightify
