@@ -341,7 +341,9 @@ mutex mtx;
     armed_blocked = true;
     Logger::Write(Logger::INFO,"set alarm-actors off");
     mtx.lock();
-    RADIORELAIS->switch_xbee(OFF);
+    RADIORELAIS->switch_xbee1(OFF);
+    RADIORELAIS->switch_xbee2(OFF);
+    RADIORELAIS->switch_xbee3(OFF);
     switch_relais(OFF);
     CTRLFILE->WriteSystemArmed(false);
     mtx.unlock();
@@ -364,7 +366,9 @@ void Alert::main_handler(void)
         cout << "set alarm actors" << endl;
         buzzertimer.StartTimer();
         switch_relais(ON);
-        RADIORELAIS->switch_xbee(ON);
+        RADIORELAIS->switch_xbee1(ON);
+        RADIORELAIS->switch_xbee2(ON);
+        RADIORELAIS->switch_xbee3(ON);
         EMAILALARM->send();
         buzzeralarm = true;
         sendsms     = true;
@@ -388,7 +392,9 @@ int     autoalarmtime;
    // switch off serial relais
    ema.switch_relais(OFF);
    // switch off radio relais
-   RADIORELAIS->switch_xbee(OFF);
+   RADIORELAIS->switch_xbee1(OFF);
+   RADIORELAIS->switch_xbee2(OFF);
+   RADIORELAIS->switch_xbee3(OFF);
    armed_blocked = false;
    buzzeralarm   = false;
    // setuup for disarm after alarm
