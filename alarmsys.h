@@ -38,6 +38,7 @@ using namespace BlackLib;
 extern bool sendsms;
 extern bool armed;
 extern bool alarmactive;
+extern bool silentactive;
 extern bool program_end;
 extern bool contactopen;
 

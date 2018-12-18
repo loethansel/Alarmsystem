@@ -22,9 +22,11 @@ bool program_end;
 bool sendsms;
 bool armed;
 bool alarmactive;
+bool silentactive;
 bool contactopen;
 bool buzzeralarm;
-bool armed_blocked;
+bool alarm_blocked;
+bool silent_blocked;
 
 //---------------------------------------------------------------------------
 // Threads Declarations
@@ -310,8 +312,9 @@ mutex mtx;
     mtx.unlock();
     if(retval) { Logger::Write(Logger::INFO,  "reading INI file during getting armed"); }
     else       { Logger::Write(Logger::ERROR, "could not read INI file ==> exit"); program_end = true; }
-    armed         = true;
-    armed_blocked = false;
+    armed          = true;
+    alarm_blocked  = false;
+    silent_blocked = false;
     OUT_LED->setValue(high);
     for(i=0;i<3;i++) {
        OUT_BUZZER->setValue(high);
@@ -335,10 +338,12 @@ mutex mtx;
     Logger::Write(Logger::INFO, "alarmsystem DISARMED!");
     buzzertimer.StopTimer();
     cout << "unscharf" << endl;
-    armed         = false;
-    alarmactive   = false;
-    buzzeralarm   = false;
-    armed_blocked = true;
+    armed          = false;
+    alarmactive    = false;
+    buzzeralarm    = false;
+    silentactive   = false;
+    alarm_blocked  = true;
+    silent_blocked = true;
     Logger::Write(Logger::INFO,"set alarm-actors off");
     mtx.lock();
     RADIORELAIS->switch_xbee1(OFF);
@@ -361,7 +366,7 @@ void Alert::main_handler(void)
     // !!! ****** ALARMOUTPUT ****** !!!
     // set alarm output actors
     //-----------------------------------------------------------
-    if(alarmactive && !armed_blocked && armed) {
+    if(alarmactive && !alarm_blocked && armed) {
         Logger::Write(Logger::INFO,"set alarm-actors on");
         cout << "set alarm actors" << endl;
         buzzertimer.StartTimer();
@@ -370,11 +375,21 @@ void Alert::main_handler(void)
         RADIORELAIS->switch_xbee2(ON);
         RADIORELAIS->switch_xbee3(ON);
         EMAILALARM->send();
-        buzzeralarm = true;
-        sendsms     = true;
+        buzzeralarm   = true;
+        sendsms       = true;
+        alarm_blocked = true;
         disarmtimer.StartTimer();
-        armed_blocked = true;
     }
+    //-----------------------------------------------------------
+    // silent alarm: send only email and sms
+    //-----------------------------------------------------------
+    if(silentactive && armed) {
+        if(!silent_blocked) {
+            EMAILALARM->send();
+            sendsms        = true;
+            silent_blocked = true;
+        }
+    } else silent_blocked = false;
 }
 
 //-----------------------------------------------------------
@@ -395,8 +410,6 @@ int     autoalarmtime;
    RADIORELAIS->switch_xbee1(OFF);
    RADIORELAIS->switch_xbee2(OFF);
    RADIORELAIS->switch_xbee3(OFF);
-   armed_blocked = false;
-   buzzeralarm   = false;
    // setuup for disarm after alarm
    alarmtime = stoi(CTRLFILE->ini.ALARM.alarmtime);
    disarmtimer.Create_Timer(0x00,(alarmtime*60));
@@ -415,20 +428,22 @@ int     autoalarmtime;
        if(program_end) break;
        ema.main_handler();
        // free cpu-time
-	   sleep(1);
+	   usleep(100);
    }
    pthread_exit(NULL);
 }
 
 Alert::Alert()
 {
-    program_end   = false;
-    sendsms       = false;
-    armed         = false;
-    alarmactive   = false;
-    contactopen   = false;
-    buzzeralarm   = false;
-    armed_blocked = true;
+    program_end    = false;
+    sendsms        = false;
+    armed          = false;
+    alarmactive    = false;
+    contactopen    = false;
+    buzzeralarm    = false;
+    silentactive   = false;
+    silent_blocked = true;
+    alarm_blocked  = true;
 }
 
 Alert::~Alert()

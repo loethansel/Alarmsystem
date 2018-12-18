@@ -2,6 +2,9 @@
 #include <fstream>
 #include <iostream>
 using namespace std;
+
+#define HEADERLEN 68
+
 namespace logger {
 class Logger
 {

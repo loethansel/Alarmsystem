@@ -19,6 +19,7 @@
 
 #include "ain_proc.h"
 #include "../logger/logger.h"
+#include "../timer/EmaTimer.h"
 //---------------------------------------------------------------------------
 // DEFINES
 //---------------------------------------------------------------------------
@@ -28,93 +29,130 @@
 using namespace std;
 using namespace BlackLib;
 using namespace logger;
+// FOREWARD DECLARATIONS
+void linelog_handler(union sigval arg);
+void measure_handler(union sigval arg);
 // GLOBALVARS
+bool      silentalarm[4];
+float     valueFloat[4];
 pthread_t aintask;
-// Analg Input Declaration
+EmaTimer  linelogtimer(linelog_handler);
+EmaTimer  measuretimer(measure_handler);
+// Analog Input Declaration
 BlackADC analog0(BlackLib::AIN0 );
 BlackADC analog1(BlackLib::AIN1 );
 BlackADC analog2(BlackLib::AIN2 );
 BlackADC analog3(BlackLib::AIN3 );
 
-// Interval Timer Handler
-void measure_handler(void)
+//----------------------------------------------------------
+// LINETOLOGGER
+//----------------------------------------------------------
+void linetologger(unsigned int line)
 {
-static int seccnt = 0;
-float        valueFloat[4];
 stringstream ss;
 string       s;
-int          i;
-bool         lineactive[MAXLINE];
-bool         linethreshold[MAXLINE];
-bool         prealert[4];
-float        umin, umax;
 
-    // read analo values
-    valueFloat[0] = analog0.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
-    valueFloat[1] = analog1.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
-    valueFloat[2] = analog2.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
-    valueFloat[3] = analog3.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
-    // Check if line is active
-    for(i=0;i<MAXLINE;i++) {
-        if(CTRLFILE->ini.ALARM_LINE.lineactv[i] == "true") lineactive[i] = true;
-        else lineactive[i] = false;
-        linethreshold[i]   = false;
-    }
-    // log the analog values every hour
-    if(seccnt++ >= INFOTIME) {
-       for(i=0;i<MAXLINE;i++) {
-           if(lineactive[i]) {
-               ss.str("");
-               ss.clear();
-               ss << "value LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[i] << endl;
-               s = ss.str();
-               Logger::Write(Logger::DEBUG,s);
-           }
-       }
-       seccnt = 0;
-    }
-    // first read all the lines to maxline
-    for(i=0;i<MAXLINE;i++) {
-        // Values to standard out
-    	//!!
-        // cout << "LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[i] << endl;
-        // check if value is off-limit
-        prealert[i] = false;
-        umin = stof(CTRLFILE->ini.ALARM_LINE.lineumin[i]);
-        umax = stof(CTRLFILE->ini.ALARM_LINE.lineumax[i]);
-        if((valueFloat[i] >= umax) || (valueFloat[i] <= umin)) {
-            // set alarm if line is permitted
-            if(lineactive[i]) { prealert[i] = true; linethreshold[i] = true; }
+    ss.str(""); ss.clear();
+    ss << CTRLFILE->ini.ALARM_LINE.linetext[line] << ": " << fixed << setprecision(3) << valueFloat[line] << endl;
+    s = ss.str();
+    Logger::Write(Logger::INFO,s);
+}
+
+//----------------------------------------------------------
+// LINELOG_HANDLER
+//----------------------------------------------------------
+void linelog_handler(union sigval arg)
+{
+int i;
+    // log only if linelog is chosen
+    if(CTRLFILE->ini.ALARM_LINE.linelog == "true") {
+        // log the analog values every hour
+        for(i=0;i<MAXLINE;i++) {
+            // print only active lines
+            if(CTRLFILE->ini.ALARM_LINE.lineactv[i] == "true") linetologger(i);
         }
     }
-    // wait 100ms to eleminate spikes and fail alerts
-    usleep(100000);
-    // reread the values
-    valueFloat[0] = analog0.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
-    valueFloat[1] = analog1.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
-    valueFloat[2] = analog2.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
-    valueFloat[3] = analog3.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT;
-    // second read all the lines to maxline
+    linelogtimer.StartTimer();
+}
+
+//----------------------------------------------------------
+// READ_ANALOGVALUES
+//----------------------------------------------------------
+bool read_analogvalues(unsigned int line)
+{
+unsigned int i;
+double       tmpfloatval[4];
+float        umin, umax;
+bool         result;
+
+    // return true for lines that should not be checked
+    if(CTRLFILE->ini.ALARM_LINE.lineactv[i] == "false") return true;
+    // read min/max thresholds
+    umin = stof(CTRLFILE->ini.ALARM_LINE.lineumin[line]);
+    umax = stof(CTRLFILE->ini.ALARM_LINE.lineumax[line]);
+    // read analog values
+    switch(line) {
+        case 0:
+            tmpfloatval[0] = 0.0;
+            for(i=0;i<MIDCNT;i++) { tmpfloatval[0] += analog0.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
+            valueFloat[0] = tmpfloatval[0] / MIDCNT;
+            if((valueFloat[0] >= umax) || (valueFloat[0] <= umin)) result = false;
+            else result = true;
+        break;
+        case 1:
+            tmpfloatval[1] = 0.0;
+            for(i=0;i<MIDCNT;i++) { tmpfloatval[1] += analog1.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
+            valueFloat[1] = tmpfloatval[1] / MIDCNT;
+            if((valueFloat[1] >= umax) || (valueFloat[1] <= umin)) result = false;
+            else result = true;
+        break;
+        case 2:
+            tmpfloatval[2] = 0.0;
+            for(i=0;i<MIDCNT;i++) { tmpfloatval[2] += analog2.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
+            valueFloat[2] = tmpfloatval[2] / MIDCNT;
+            if((valueFloat[2] >= umax) || (valueFloat[2] <= umin)) result = false;
+            else result = true;
+        break;
+        case 3:
+            tmpfloatval[3] = 0.0;
+            for(i=0;i<MIDCNT;i++) { tmpfloatval[3] += analog3.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
+            valueFloat[3] = tmpfloatval[3] / MIDCNT;
+            if((valueFloat[3] >= umax) || (valueFloat[3] <= umin)) result = false;
+            else result = true;
+        break;
+        default:
+            result = false;
+        break;
+    }
+    return result;
+}
+
+//----------------------------------------------------------
+// MEASURE_HANDLER (100ms)
+//----------------------------------------------------------
+void measure_handler(union sigval arg)
+{
+bool linethreshold[MAXLINE];
+int  i;
+
+    // check all lines
     for(i=0;i<MAXLINE;i++) {
-        // check if value is off-limit
-        umin = stof(CTRLFILE->ini.ALARM_LINE.lineumin[i]);
-        umax = stof(CTRLFILE->ini.ALARM_LINE.lineumax[i]);
-        if((valueFloat[i] >= umax) || (valueFloat[i] <= umin)) {
-            if(armed && (prealert[i] == true)) {
-                alarmactive = true;
-                if(CTRLFILE->ini.ALARM_LINE.linelog == "true") {
-                    ss.str("");
-                    ss.clear();
-                    ss << "alarm LINIE" << tostr(i+1) << ": " << fixed << setprecision(3) << valueFloat[i] << endl;
-                    s = ss.str();
-                    Logger::Write(Logger::INFO,s);
-                }
+        // read all lines
+        if(!read_analogvalues(i)) {
+            linethreshold[i] = true;
+            if(armed) {
+                if(CTRLFILE->ini.ALARM_LINE.linecalm[i] == "true") silentactive = true;
+                else alarmactive = true;
+                linetologger(i);
             }
-        }
+        } else linethreshold[i] = false;
     }
     // Check if all active lines are idle
-    if((linethreshold[0] == 0) && (linethreshold[1] == 0) && (linethreshold[2] == 0) && (linethreshold[3] == 0)) contactopen = false;
-    else contactopen = true;
+    if((linethreshold[0] == 0) && (linethreshold[1] == 0) && (linethreshold[2] == 0) && (linethreshold[3] == 0)) {
+        contactopen  = false;
+        silentactive = false;
+    } else contactopen = true;
+    measuretimer.StartTimer();
 }
 
 //---------------------------------------------------------------------------
@@ -122,11 +160,15 @@ float        umin, umax;
 //---------------------------------------------------------------------------
 void *AinTask(void *value)
 {
+    // cyclic log the voltage value of each line
+    linelogtimer.Create_Timer(0x00,INFOTIME);
+    linelogtimer.StartTimer();
+    measuretimer.Create_Timer(MEASUREINTERVAL,0x00);
+    measuretimer.StartTimer();
     while(1) {
         // INTERES SIGNAL PROGRAM END!!
         if(program_end) break;
-        measure_handler();
-    	sleep(1);
+    	usleep(100);
     }
     pthread_exit(NULL);
 }

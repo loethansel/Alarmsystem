@@ -47,6 +47,7 @@ typedef struct {
     string lineumax[MAXLINES];
     string lineumin[MAXLINES];
     string linetext[MAXLINES];
+    string linecalm[MAXLINES];
     string linelog;
 } s_lines;
 typedef struct {

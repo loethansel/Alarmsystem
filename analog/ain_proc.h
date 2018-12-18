@@ -31,6 +31,11 @@ using namespace BlackLib;
 #define MAXLINE 4
 #define UMAX 1.00
 #define UMIN 0.30
+#define MIDCNT  4
+// microseconds
+#define MIDTIME 5000
+// microseconds
+#define MEASUREINTERVAL 100
 // EXTERN DECLARAIONS
 extern void *AinTask(void *value);
 extern pthread_t aintask;

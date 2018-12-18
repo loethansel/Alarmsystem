@@ -1,6 +1,7 @@
 #include "logger.h"
 
 #include <mutex>
+#include <sstream>
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
@@ -80,47 +81,26 @@ void Logger::Write(Priority priority, const string& message, const char* str, co
     }
     if(instance->active && priority >= instance->minPriority)
     {
-        mutex m;
+        mutex  m;
+        stringstream ss;
         string filename(file);
-        string tabs(" ");
-        int size = strlen(str);
-        if(size <= 8)
-        {
-            tabs = "        ";
-        }
-        else if(size <= 10)
-        {
-            tabs = "   ";
-        }
-        else if(size >= 12)
-        {
-            tabs = " ";
-        }
+        int    len, i;
+
         m.lock();
+        ss.str(""); ss.clear();
+        ss << currentDateTime()
+           << " ["
+           << PRIORITY_NAMES[priority]
+           << "] ["
+           << filename <<"::" << str << "]"
+           << ":";
+        ss.seekg(0, ios::end);
+        len = ss.tellg();
+        for(i=len;i<HEADERLEN;i++) ss << " ";
+        ss << message << endl;
         // identify current output stream
         ostream& stream = instance->fileStream.is_open() ? instance->fileStream : cout;
-
-        stream  << currentDateTime() 
-                << " [" 
-                << PRIORITY_NAMES[priority]
-                << "] ["
-                << filename <<"::" << str << "]"
-                << ":"
-                << tabs
-                << message
-                << " (" << size << ")"
-                << endl;
-
-//        cout  << currentDateTime()
-//                        << " ["
-//                        << PRIORITY_NAMES[priority]
-//                        << "] ["
-//                        << filename <<"::" << str << "]"
-//                        << ":(" << size << ")"
-//                        << tabs
-//                        << message
-//                        << endl;
-
+        stream << ss.str();
         m.unlock();
     }
 }
