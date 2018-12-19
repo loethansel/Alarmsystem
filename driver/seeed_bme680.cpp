@@ -21,19 +21,22 @@
 // NAMASPACES
 using namespace std;
 using namespace BlackLib;
-
+// FOREWARD DECLARATIONS
+int8_t iic_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len);
+int8_t iic_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len);
+// CLASS DECLARATIONS
+BlackI2C  bme_i2c(BlackLib::I2C_2, 0x76);
 
 /**@brief constructor of IIC interface.
  * @param addr The BME680 device IIC address.
  * @return NONE.
  */
-Seeed_BME680::Seeed_BME680() : BlackI2C(BlackLib::I2C_2, 0x76)
+Seeed_BME680::Seeed_BME680()
 {
-    bool isOpened = open( BlackLib::ReadWrite | BlackLib::NonBlock );
-    if( !isOpened )
-    {
-        std::cout << "I2C DEVICE CAN\'T OPEN.;" << std::endl;
-    }
+    bool isOpened = bme_i2c.open( BlackLib::ReadWrite | BlackLib::NonBlock );
+    if(!isOpened) std::cout << "I2C DEVICE CAN\'T OPEN.;" << std::endl;
+    // ????
+    sensor_param.intf = BME680_I2C_INTF;
 }
 
 float Seeed_BME680:: read_temperature(void)
@@ -133,29 +136,29 @@ int8_t Seeed_BME680::read_sensor_data(void)
  	return BME680_OK;
 }
 
-int8_t Seeed_BME680::iic_read(uint8_t reg_addr, uint8_t *reg_data, uint16_t len)
+int8_t iic_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len)
 {
   int32_t i = 0;
   //! unsicher, ob ich es richtig gemacht habe: testen!!!!
-  writeByte(reg_addr,len);
-  if(len != writeByte(reg_addr,len))
+  bme_i2c.writeByte(reg_addr,len);
+  if(len != bme_i2c.writeByte(reg_addr,len))
   {
     return 1;
   }
   for(i=0;i<len;i++)
   {
-  	 reg_data[i]=(uint8_t) readByte(reg_addr);
+  	 reg_data[i]=(uint8_t) bme_i2c.readByte(reg_addr);
   }
   return 0;
 }
 
-int8_t Seeed_BME680::iic_write(uint8_t reg_addr, uint8_t *reg_data, uint16_t len)
+int8_t iic_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16_t len)
 {
 int32_t i = 0;
 
 	for(i=0;i<len;i++)
 	{
-	    writeByte(reg_addr,reg_data[i]);
+	    bme_i2c.writeByte(reg_addr,reg_data[i]);
 	}
 	return 0;
 }
@@ -169,12 +172,10 @@ static void delay_msec(unsigned int ms)
 bool Seeed_BME680::init() 
 {
 	/*User specifies IIC protocol in constructor.*/
-
     if(sensor_param.intf==BME680_I2C_INTF)
 	{
-//!! REPARIEREN und dann alles testen...
-	    //sensor_param.read  = iic_read;
-	    //sensor_param.write = Seeed_BME680::iic_write;
+	    sensor_param.read  = iic_read;
+	    sensor_param.write = iic_write;
   	} 
     sensor_param.delay_ms = delay_msec;
     int8_t ret = BME680_OK;

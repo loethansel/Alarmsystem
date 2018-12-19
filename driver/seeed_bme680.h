@@ -38,7 +38,7 @@ typedef struct Result
 }sensor_result_t;
 
 
-class Seeed_BME680 : public BlackI2C
+class Seeed_BME680
 {
   public:
     Seeed_BME680();
@@ -50,8 +50,6 @@ class Seeed_BME680 : public BlackI2C
     float  read_gas(void);
 	sensor_result_t sensor_result_value;
   private:       
-	int8_t iic_write(uint8_t reg_addr, uint8_t *reg_data, uint16_t len);
-	int8_t iic_read(uint8_t reg_addr, uint8_t *reg_data, uint16_t len);
     struct bme680_dev sensor_param;      /**< Official LIB structure.*/
 };
 

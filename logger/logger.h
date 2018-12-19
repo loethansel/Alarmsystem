@@ -3,7 +3,7 @@
 #include <iostream>
 using namespace std;
 
-#define HEADERLEN 68
+#define HEADERLEN 60
 
 namespace logger {
 class Logger

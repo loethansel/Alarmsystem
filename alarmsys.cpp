@@ -7,6 +7,7 @@
 #include "alarmsys.h"
 #include "logger/logger.h"
 #include "timer/EmaTimer.h"
+#include "driver/seeed_bme680.h"
 
 //---------------------------------------------------------------------------
 // USING NAMESPACE
@@ -44,7 +45,8 @@ void *MainTask(void *value);
 //---------------------------------------------------------------------------
 // CLASS Declarations
 //---------------------------------------------------------------------------
-Alert    ema;
+Seeed_BME680 bme;
+Alert        ema;
 EmaTimer inputtimer(input_handler);
 EmaTimer buzzertimer(buzzer_handler);
 EmaTimer disarmtimer(disarm_handler);
@@ -421,6 +423,9 @@ int     autoalarmtime;
    // read digital an file inputs cyclic
    inputtimer.Create_Timer(100,0);
    inputtimer.StartTimer();
+   // test
+   bme.init();
+   cout << "Temperatur: "<< fixed << setprecision(3) <<  bme.read_temperature() << endl;
 
    // forever main task ...
    while(1) {

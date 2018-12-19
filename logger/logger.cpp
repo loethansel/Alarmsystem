@@ -85,8 +85,8 @@ void Logger::Write(Priority priority, const string& message, const char* str, co
         stringstream ss;
         string filename(file);
         int    len, i;
-
         m.lock();
+        ostream& stream = instance->fileStream.is_open() ? instance->fileStream : cout;
         ss.str(""); ss.clear();
         ss << currentDateTime()
            << " ["
@@ -99,8 +99,8 @@ void Logger::Write(Priority priority, const string& message, const char* str, co
         for(i=len;i<HEADERLEN;i++) ss << " ";
         ss << message << endl;
         // identify current output stream
-        ostream& stream = instance->fileStream.is_open() ? instance->fileStream : cout;
         stream << ss.str();
+        stream.flush();
         m.unlock();
     }
 }

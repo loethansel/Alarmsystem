@@ -53,7 +53,7 @@ stringstream ss;
 string       s;
 
     ss.str(""); ss.clear();
-    ss << CTRLFILE->ini.ALARM_LINE.linetext[line] << ": " << fixed << setprecision(3) << valueFloat[line] << endl;
+    ss << CTRLFILE->ini.ALARM_LINE.linetext[line] << ": " << fixed << setprecision(3) << valueFloat[line];
     s = ss.str();
     Logger::Write(Logger::INFO,s);
 }
