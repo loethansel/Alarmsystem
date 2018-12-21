@@ -45,7 +45,7 @@ int i;
  	       << "alive: "  << (FONA1.fonalive?"ok":"bad")  << "; "
            << "rx: "     << (FONA1.fonarssi?"ok":"bad")  << "; "
 		   << "rssi: "   << tostr(FONA1.rxpegel_numeric) << "; "
-		   << "credit: " << FONA1.credit_aschar          << ";"  << endl;
+		   << "credit: " << FONA1.credit_aschar          << ";";
         s = ss.str();
         Logger::Write(Logger::INFO,s);
         seccnt = 0;

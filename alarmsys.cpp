@@ -36,6 +36,7 @@ pthread_t maintask;
 //---------------------------------------------------------------------------
 // FOREWARD Declarations
 //---------------------------------------------------------------------------
+void bme680_handler(union sigval arg);
 void input_handler(union sigval arg);
 void buzzer_handler(union sigval arg);
 void disarm_handler(union sigval arg);
@@ -47,6 +48,7 @@ void *MainTask(void *value);
 //---------------------------------------------------------------------------
 Seeed_BME680 bme;
 Alert        ema;
+EmaTimer bme680timer(bme680_handler);
 EmaTimer inputtimer(input_handler);
 EmaTimer buzzertimer(buzzer_handler);
 EmaTimer disarmtimer(disarm_handler);
@@ -66,6 +68,28 @@ serialrelais *RELAIS;
 xbee         *RADIORELAIS;
 // EMAIL
 email        *EMAILALARM;
+
+
+//----------------------------------------------------------
+// BME680_HANDLER 1h
+//----------------------------------------------------------
+void bme680_handler(union sigval arg)
+{
+string       s;
+stringstream ss;
+
+    if(!bme.performReading()) Logger::Write(Logger::ERROR,"bm680 read failure");
+    else {
+        ss << "bme680: "
+           << "temperature = " << bme.temperature << " °C; "
+           << "humidity = "    << bme.humidity    << " %; "
+           << "pressure = "    << bme.pressure    << " hPa; "
+           << "gas resist= "   << bme.gas_resistance << "-;" << endl;
+        s = ss.str();
+        Logger::Write(Logger::INFO,s);
+    }
+    bme680timer.StartTimer();
+}
 
 
 //----------------------------------------------------------
@@ -199,6 +223,7 @@ bool retval;
 //----------------------------------------------------------
 void Alert::init_system(void)
 {
+
     // INPUTS
     Logger::Write(Logger::INFO, "input GPIO's exported to /sys/class/gpio");
     IN_SCHARF   = new BlackGPIO(BlackLib::GPIO_50 ,BlackLib::input); // P9.14
@@ -279,10 +304,10 @@ bool Alert::init_tasks(void)
 bool Alert::switch_relais(bool onoff)
 {   // switch on serial relais
     if(onoff) {
-        RELAIS->turn_on_channel(1);
-        RELAIS->turn_on_channel(2);
-        RELAIS->turn_on_channel(3);
-        RELAIS->turn_on_channel(4);
+        if(CTRLFILE->ini.OUT_ACTIVE.out[0] == "true") RELAIS->turn_on_channel(1);
+        if(CTRLFILE->ini.OUT_ACTIVE.out[1] == "true") RELAIS->turn_on_channel(2);
+        if(CTRLFILE->ini.OUT_ACTIVE.out[2] == "true") RELAIS->turn_on_channel(3);
+        if(CTRLFILE->ini.OUT_ACTIVE.out[3] == "true") RELAIS->turn_on_channel(4);
     }
     // switch off serial relais
     else {
@@ -423,17 +448,21 @@ int     autoalarmtime;
    // read digital an file inputs cyclic
    inputtimer.Create_Timer(100,0);
    inputtimer.StartTimer();
-   // test
-   bme.init();
-   cout << "Temperatur: "<< fixed << setprecision(3) <<  bme.read_temperature() << endl;
-
+   // bme680 sensor
+   if(bme.init()) {
+       // read digital an file inputs cyclic
+       bme680timer.Create_Timer(0,INFOTIME);
+       bme680timer.StartTimer();
+       Logger::Write(Logger::INFO,"bm680 init successful");
+   }
+   else Logger::Write(Logger::ERROR,"bm680 init failed");
    // forever main task ...
    while(1) {
        // intern signal program end
        if(program_end) break;
        ema.main_handler();
        // free cpu-time
-	   usleep(100);
+	   usleep(200);
    }
    pthread_exit(NULL);
 }

@@ -86,7 +86,7 @@ float        umin, umax;
 bool         result;
 
     // return true for lines that should not be checked
-    if(CTRLFILE->ini.ALARM_LINE.lineactv[i] == "false") return true;
+    if(CTRLFILE->ini.ALARM_LINE.lineactv[line] == "false") return true;
     // read min/max thresholds
     umin = stof(CTRLFILE->ini.ALARM_LINE.lineumin[line]);
     umax = stof(CTRLFILE->ini.ALARM_LINE.lineumax[line]);
@@ -168,7 +168,7 @@ void *AinTask(void *value)
     while(1) {
         // INTERES SIGNAL PROGRAM END!!
         if(program_end) break;
-    	usleep(100);
+    	usleep(200);
     }
     pthread_exit(NULL);
 }

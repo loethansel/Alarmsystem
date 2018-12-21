@@ -25,9 +25,11 @@ EmaTimer::EmaTimer(void (*fp)(union sigval arg))
 bool EmaTimer::Create_Timer(int milli, int sec)
 {
 int status;
+long int nsec;
 
+    nsec   = 1000000 * milli;
     ts.it_value.tv_sec     = sec;
-    ts.it_value.tv_nsec    = 1000000 * milli;
+    ts.it_value.tv_nsec    = nsec;
     ts.it_interval.tv_sec  = 0;
     ts.it_interval.tv_nsec = 0;
 
