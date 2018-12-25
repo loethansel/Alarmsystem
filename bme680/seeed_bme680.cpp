@@ -17,7 +17,7 @@
  * corresponding different constructor.Furthermore,you can customize the pin when your development board's SPI
  * interface is mismatch with official.All you have to do is choose different ways to instantiate object.
  */
-#include "../driver/seeed_bme680.h"
+#include "seeed_bme680.h"
 // NAMASPACES
 using namespace std;
 using namespace BlackLib;
@@ -411,7 +411,7 @@ bool Seeed_BME680::init()
     ret = bme680_init(&sensor_param);
     if(ret != 0)
     {
-       cout << "bme680_init() ==> ret value = " << dec << ret << endl;
+       cout << "bme680_init() ==> ret value = " << hex << ret << endl;
 	   return false;
     }
     setTemperatureOversampling(BME680_OS_8X);

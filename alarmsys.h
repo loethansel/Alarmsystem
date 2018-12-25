@@ -28,7 +28,7 @@
 #include "analog/ain_proc.h"
 #include "files/ctrlfile.h"
 #include "files/iniparser.h"
-#include "radio/xbee.h"
+#include "xbee/xbee.h"
 #include "email/email.h"
 
 using namespace std;
@@ -57,8 +57,10 @@ extern xbee         *RADIORELAIS;
 extern email        *EMAILALARM;
 
 
-#define ON  true
-#define OFF false
+#define ON   true
+#define OFF  false
+#define SET  true
+#define CLR  false
 // Infotime in seconds
 #define INFOTIME  3600
 // Alarmtime in minutes

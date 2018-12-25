@@ -60,7 +60,7 @@ extern "C"
 #endif
 
 /* Header includes */
-#include "../driver/bme680_defs.h"
+#include "bme680_defs.h"
 
 /* function prototype declarations */
 /*!

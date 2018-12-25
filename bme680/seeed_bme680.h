@@ -23,7 +23,7 @@
 
 #include "../blacklib/BlackLib.h"
 #include "../blacklib/BlackI2C/BlackI2C.h"
-#include "../driver/bme680.h"
+#include "../bme680/bme680.h"
 // NAMESPACES
 using namespace std;
 using namespace BlackLib;

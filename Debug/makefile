@@ -8,15 +8,15 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include xbee/subdir.mk
 -include timer/subdir.mk
 -include rtc/subdir.mk
 -include relais/subdir.mk
--include radio/subdir.mk
 -include logger/subdir.mk
 -include gsm/subdir.mk
 -include files/subdir.mk
 -include email/subdir.mk
--include driver/subdir.mk
+-include bme680/subdir.mk
 -include blacklib/Release/BlackUART/subdir.mk
 -include blacklib/Release/BlackTime/subdir.mk
 -include blacklib/Release/BlackThread/subdir.mk

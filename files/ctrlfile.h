@@ -21,7 +21,17 @@
 #define MAX_MSG_LEN  50
 #define MAX_OUT       4
 #define MAX_MAIL      2
-#define MAX_XBEE      2
+#define MAX_XBEE      8
+// MAX_XBEE defines
+#define XBEE_ALROUT1 0
+#define XBEE_ALROUT2 1
+#define XBEE_ALR_IN1 2
+#define XBEE_ALR_IN2 3
+#define XBEE_TIMESW1 4
+#define XBEE_TIMESW2 5
+#define XBEE_ON_OFF1 6
+#define XBEE_ON_OFF2 7
+
 // TYPEDEFS
 
 // INISTRUCT
@@ -74,9 +84,15 @@ typedef struct {
     string servicemail;
 } s_mail;
 typedef struct {
-    string macid[MAX_XBEE];
-    string out[MAX_XBEE];
-    string in[MAX_XBEE];
+    string name;
+    string addr64;
+    string addr16;
+    string framet;
+    string destend;
+    string cluster;
+    string profile;
+    string payload1;
+    string payload2;
 } s_xbee;
 // INISTRUCT
 typedef struct {
@@ -89,7 +105,7 @@ typedef struct {
    s_num     TEL_NUM;
    s_out     OUT_ACTIVE;
    s_mail    EMAIL;
-   s_xbee    XBEE;
+   s_xbee    XBEE[MAX_XBEE];
 } s_initval;
 /*
 // ALARMNUMMERN

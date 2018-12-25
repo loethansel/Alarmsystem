@@ -69,13 +69,13 @@ blacklib/Release/BlackSPI \
 blacklib/Release/BlackThread \
 blacklib/Release/BlackTime \
 blacklib/Release/BlackUART \
-driver \
+bme680 \
 email \
 files \
 gsm \
 logger \
-radio \
 relais \
 rtc \
 timer \
+xbee \
 

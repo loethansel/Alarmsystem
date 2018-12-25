@@ -7,8 +7,8 @@
 #include "alarmsys.h"
 #include "logger/logger.h"
 #include "timer/EmaTimer.h"
-#include "driver/seeed_bme680.h"
-
+#include "bme680/seeed_bme680.h"
+#include "xbee/xbeeproc.h"
 //---------------------------------------------------------------------------
 // USING NAMESPACE
 //---------------------------------------------------------------------------
@@ -69,7 +69,6 @@ xbee         *RADIORELAIS;
 // EMAIL
 email        *EMAILALARM;
 
-
 //----------------------------------------------------------
 // BME680_HANDLER 1h
 //----------------------------------------------------------
@@ -81,16 +80,15 @@ stringstream ss;
     if(!bme.performReading()) Logger::Write(Logger::ERROR,"bm680 read failure");
     else {
         ss << "bme680: "
-           << "temperature = " << bme.temperature << " °C; "
+           << "temperature = " << bme.temperature << " *C; "
            << "humidity = "    << bme.humidity    << " %; "
            << "pressure = "    << bme.pressure    << " hPa; "
-           << "gas resist= "   << bme.gas_resistance << "-;" << endl;
+           << "gas resist= "   << bme.gas_resistance << " -;";
         s = ss.str();
         Logger::Write(Logger::INFO,s);
     }
     bme680timer.StartTimer();
 }
-
 
 //----------------------------------------------------------
 // INPUT_HANDLER 100ms
@@ -280,6 +278,13 @@ bool Alert::init_tasks(void)
         Logger::Write(Logger::ERROR, "error creating GSM-task => exit");
         return false;
     }
+    // Create XBEE-Task
+    if(pthread_create(&xbeetask, NULL,&XbeeTask,NULL)) {
+        Logger::Write(Logger::ERROR, "error creating XBee-task => exit");
+        return false;
+    }
+    if(pthread_join(xbeetask,NULL)) return false;
+    Logger::Write(Logger::INFO, "joined XBEE-task => exit");
     if(pthread_join(aintask,NULL)) return false;
     Logger::Write(Logger::INFO, "joined AIN-task => exit");
     if(pthread_join(gsmtask,NULL))  return false;
@@ -490,7 +495,7 @@ Alert::~Alert()
 
 //---------------------------------------------------------------------------
 // MAIN
-//---------------------------------------------------------------------------
+//-------
 // getestet & ok
 //---------------------------------------------------------------------------
 int main()
