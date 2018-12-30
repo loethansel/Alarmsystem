@@ -16,6 +16,7 @@
 // EXTERNALS
 extern pthread_t xbeetask;
 extern void *XbeeTask(void *value);
+extern void XbeeSetupSend(s_xbee *frame, bool setclr);
 
 namespace std
 {

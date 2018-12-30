@@ -64,8 +64,6 @@ BlackGPIO    *IN_UNSCHARF;
 ctrlfile     *CTRLFILE;
 // I2C-RELAIS
 serialrelais *RELAIS;
-// I2C-RELAIS
-xbee         *RADIORELAIS;
 // EMAIL
 email        *EMAILALARM;
 
@@ -236,8 +234,6 @@ void Alert::init_system(void)
     CTRLFILE = new ctrlfile;
     // RELAIS
     RELAIS   = new serialrelais;
-    // XBEE-RADIO-RELAIS
-    RADIORELAIS = new xbee;
     // EMAILALARM
     EMAILALARM = new email;
     // GPIO-OVERVIEW
@@ -298,7 +294,6 @@ bool Alert::init_tasks(void)
     delete OUT_LED;     // P9.27
     delete CTRLFILE;    // File-IO Modul
     delete RELAIS;      // I2C-Relais-Modul
-    delete RADIORELAIS; // xbee Relais-Modul
     delete EMAILALARM;  // emailalarm
     return true;
 }
@@ -378,9 +373,8 @@ mutex mtx;
     silent_blocked = true;
     Logger::Write(Logger::INFO,"set alarm-actors off");
     mtx.lock();
-    RADIORELAIS->switch_xbee1(OFF);
-    RADIORELAIS->switch_xbee2(OFF);
-    RADIORELAIS->switch_xbee3(OFF);
+    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],CLR);
+    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],CLR);
     switch_relais(OFF);
     CTRLFILE->WriteSystemArmed(false);
     mtx.unlock();
@@ -403,9 +397,6 @@ void Alert::main_handler(void)
         cout << "set alarm actors" << endl;
         buzzertimer.StartTimer();
         switch_relais(ON);
-        RADIORELAIS->switch_xbee1(ON);
-        RADIORELAIS->switch_xbee2(ON);
-        RADIORELAIS->switch_xbee3(ON);
         EMAILALARM->send();
         buzzeralarm   = true;
         sendsms       = true;
@@ -438,10 +429,6 @@ int     autoalarmtime;
    if(version == 0) Logger::Write(Logger::ERROR, "serial relais did not respond");
    // switch off serial relais
    ema.switch_relais(OFF);
-   // switch off radio relais
-   RADIORELAIS->switch_xbee1(OFF);
-   RADIORELAIS->switch_xbee2(OFF);
-   RADIORELAIS->switch_xbee3(OFF);
    // setuup for disarm after alarm
    alarmtime = stoi(CTRLFILE->ini.ALARM.alarmtime);
    disarmtimer.Create_Timer(0x00,(alarmtime*60));

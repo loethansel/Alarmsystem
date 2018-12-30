@@ -22,6 +22,7 @@
 #include "../logger/logger.h"
 #include "../blacklib/BlackLib.h"
 #include "../blacklib/BlackUART/BlackUART.h"
+#include "../blacklib/BlackErr.h"
 
 //---------------------------------------------------------------------------
 // USING NAMESPACE
@@ -31,7 +32,8 @@ using namespace BlackLib;
 using namespace logger;
 
 
-BlackUART serialxbee(UARTUSB0,Baud9600,ParityNo,StopOne,Char8);
+BlackUART serialxbee(UART4,Baud9600,ParityNo,StopOne,Char8);
+//BlackUART serialxbee(UARTUSB0,Baud9600,ParityNo,StopOne,Char8);
 
 
 XBeeResponse::XBeeResponse()
@@ -830,15 +832,24 @@ bool XBee::begin()
 {
 
     bool isOpened = serialxbee.open(BlackLib::ReadWrite | BlackLib::NonBlock);
-    //!!
-    serialxbee.close();
+//    serialxbee.close();
     // check the open succeed
-    if(!isOpened ) cout << "XBEE on UARTUSB1 can\'t open!" << endl;
+    if(!isOpened ) cout << "XBEE on " << serialxbee.getPortName() << " can\'t open!" << endl;
     else {
-        cout << "XBEE on UARTUSB1 is open...." << endl;
+        cout << "XBEE on " << serialxbee.getPortName() << " is open.." << endl;
         return true;
     }
     return false;
+}
+
+bool XBee::serialopen()
+{
+    serialxbee.open(BlackLib::ReadWrite | BlackLib::NonBlock);
+}
+
+bool XBee::serialclose()
+{
+    serialxbee.close();
 }
 
 bool XBee::available()
@@ -849,7 +860,7 @@ bool XBee::available()
 
 uint8_t XBee::read()
 {
-char readval;
+static char readval;
 
     serialxbee.read(&readval,1);
 	return static_cast<uint8_t>(readval);
@@ -874,7 +885,6 @@ void XBee::getResponse(XBeeResponse &response) {
 	response.setLsbLength(_response.getLsbLength());
 	response.setApiId(_response.getApiId());
 	response.setFrameLength(_response.getFrameDataLength());
-
 	response.setFrameData(_response.getFrameData());
 }
 
@@ -888,18 +898,19 @@ void XBee::readPacketUntilAvailable() {
 bool XBee::readPacket(int timeout)
 {
 struct timeval tmnow;
-unsigned long millisstart;
-unsigned long millisnow;
+unsigned long long millisstart;
+unsigned long long millisnow;
 
 	if (timeout < 0) return false;
 	gettimeofday(&tmnow, NULL);
-	millisnow = millisstart = (tmnow.tv_usec / 1000);
+	millisnow = millisstart =  (tmnow.tv_sec * 1000) + (tmnow.tv_usec / 1000);
 
-    while(int(millisnow - millisstart) < timeout) {
+	while(int(millisnow - millisstart) < timeout) {
         // get milliseconds for timeout
         gettimeofday(&tmnow, NULL);
-        millisnow = (tmnow.tv_usec / 1000);
+        millisnow = (tmnow.tv_sec * 1000) +  (tmnow.tv_usec / 1000);
         // read packets
+        usleep(50000);
      	readPacket();
      	if (getResponse().isAvailable())  return true;
      	else if (getResponse().isError()) return false;
@@ -909,98 +920,71 @@ unsigned long millisnow;
 }
 
 void XBee::readPacket() {
+//char buff[255];
+unsigned int  errcnt = 0;
+
 	// reset previous response
 	if (_response.isAvailable() || _response.isError()) {
 		// discard previous packet and start over
 		resetResponse();
 	}
-
     while (available()) {
-
+        // read one character 9600 baud
         b = read();
-
-        if (_pos > 0 && b == START_BYTE && ATAP == 2) {
-        	// new packet start before previous packeted completed -- discard previous packet and start over
-        	_response.setErrorCode(UNEXPECTED_START_BYTE);
-        	return;
+        // read again if not successful
+        if(serialxbee.fail(BlackLib::BlackUART::readErr)) {
+            if(++errcnt > MAX_FRAME_DATA_SIZE) return;
+            else continue;
         }
-
-		if (_pos > 0 && b == ESCAPE) {
-			if (available()) {
-				b = read();
-				b = 0x20 ^ b;
-			} else {
-				// escape byte.  next byte will be
-				_escape = true;
-				continue;
-			}
-		}
-
-		if (_escape == true) {
-			b = 0x20 ^ b;
-			_escape = false;
-		}
-
 		// checksum includes all bytes starting with api id
-		if (_pos >= API_ID_INDEX) {
+        // buff[_pos] = b;
+		if(_pos >= API_ID_INDEX) {
 			_checksumTotal+= b;
 		}
-
         switch(_pos) {
 			case 0:
 		        if (b == START_BYTE) {
 		        	_pos++;
 		        }
-
 		        break;
 			case 1:
 				// length msb
 				_response.setMsbLength(b);
 				_pos++;
-
 				break;
 			case 2:
 				// length lsb
 				_response.setLsbLength(b);
 				_pos++;
-
 				break;
 			case 3:
 				_response.setApiId(b);
 				_pos++;
-
 				break;
 			default:
 				// starts at fifth byte
-
 				if (_pos > MAX_FRAME_DATA_SIZE) {
 					// exceed max size.  should never occur
 					_response.setErrorCode(PACKET_EXCEEDS_BYTE_ARRAY_LENGTH);
 					return;
 				}
-
 				// check if we're at the end of the packet
 				// packet length does not include start, length, or checksum bytes, so add 3
 				if (_pos == (_response.getPacketLength() + 3)) {
 					// verify checksum
-
-					if ((_checksumTotal & 0xff) == 0xff) {
+					if((_checksumTotal & 0xff) == 0xff) {
 						_response.setChecksum(b);
 						_response.setAvailable(true);
-
 						_response.setErrorCode(NO_ERROR);
 					} else {
 						// checksum failed
 						_response.setErrorCode(CHECKSUM_FAILURE);
 					}
-
 					// minus 4 because we start after start,msb,lsb,api and up to but not including checksum
 					// e.g. if frame was one byte, _pos=4 would be the byte, pos=5 is the checksum, where end stop reading
 					_response.setFrameLength(_pos - 4);
-
 					// reset state vars
 					_pos = 0;
-
 					return;
 				} else {
 					// add to packet array, starting with the fourth byte of the apiFrame
@@ -1012,7 +996,6 @@ void XBee::readPacket() {
 }
 
 // it's peanut butter jelly time!!
-
 XBeeRequest::XBeeRequest(uint8_t apiId, uint8_t frameId) {
 	_apiId = apiId;
 	_frameId = frameId;
@@ -1534,7 +1517,6 @@ void XBee::send(XBeeRequest &request)
 mutex mtx;
 
     mtx.lock();
-    serialxbee.open(BlackLib::ReadWrite | BlackLib::NonBlock);
 	// the new new deal
     // test: 7E 00 19 11 01 7C B0 3E AA 00 B2 39 EA FF FE E8 03 00 06 01 04 00 00 01 00 01 00 10 FF
 	sendByte(START_BYTE, false);
@@ -1560,7 +1542,6 @@ mutex mtx;
 	// send checksum
 	sendByte(checksum, false);
 	usleep(500);
-    serialxbee.close();
     mtx.unlock();
 }
 
@@ -1571,6 +1552,7 @@ void XBee::sendByte(uint8_t b, bool escape) {
 		write(b ^ 0x20);
 	} else {
 		write(b);
+        usleep(40000);
 	}
 }
 
@@ -1683,11 +1665,11 @@ uint8_t XBeeWithCallbacks::matchStatus(uint8_t frameId) {
 uint8_t XBeeWithCallbacks::waitForInternal(uint8_t apiId, void *response, uint16_t timeout, void *func, uintptr_t data, int16_t frameId)
 {
 struct timeval tmnow;
-unsigned long millisstart;
-unsigned long millisnow;
+unsigned long long millisstart;
+unsigned long long millisnow;
 
     gettimeofday(&tmnow, NULL);
-    millisstart = (tmnow.tv_usec / 1000);
+    millisstart =  (tmnow.tv_sec * 1000) + (tmnow.tv_usec / 1000);
 	do {
 		// Wait for a packet of the right type
 		if (loopTop()) {
@@ -1814,7 +1796,7 @@ unsigned long millisnow;
 			loopBottom();
 		}
 	    gettimeofday(&tmnow, NULL);
-	    millisnow = (tmnow.tv_usec / 1000);
+	    millisnow = (tmnow.tv_sec * 1000) + (tmnow.tv_usec / 1000);
 	} while((millisnow - millisstart) < timeout);
 	return XBEE_WAIT_TIMEOUT;
 }
@@ -1822,22 +1804,20 @@ unsigned long millisnow;
 uint8_t XBeeWithCallbacks::waitForStatus(uint8_t frameId, uint16_t timeout)
 {
 struct timeval tmnow;
-unsigned long millisstart;
-unsigned long millisnow;
+unsigned long long millisstart;
+unsigned long long millisnow;
 
     gettimeofday(&tmnow, NULL);
-    millisstart = (tmnow.tv_usec / 1000);
+    millisstart =  (tmnow.tv_sec * 1000) + (tmnow.tv_usec / 1000);
 	do {
 		if (loopTop()) {
 			uint8_t status = matchStatus(frameId);
-			if (status != 0xff)
-				return status;
-
+			if(status != 0xff) return status;
 			// Call regular callbacks
 			loopBottom();
 		}
 	    gettimeofday(&tmnow, NULL);
-	    millisnow = (tmnow.tv_usec / 1000);
+	    millisnow = (tmnow.tv_sec * 1000) + (tmnow.tv_usec / 1000);
 	} while((millisnow - millisstart) < timeout);
 	return XBEE_WAIT_TIMEOUT ;
 }

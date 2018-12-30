@@ -29,17 +29,13 @@ using namespace logger;
 void Xbee_handler(union sigval arg);
 void XbeeSwitchOn_handler(union sigval arg);
 void XbeeSwitchOff_handler(union sigval arg);
-void XbeeAlarm(uint8_t nr);
 void XbeeSetupSend(s_xbee *frame, bool setclr);
 // CLASSES
-//XBee  xbee = XBee();
 XBee     xbee;
 EmaTimer xbeeswitchontimer(XbeeSwitchOn_handler);
 EmaTimer xbeeswitchofftimer(XbeeSwitchOff_handler);
 EmaTimer xbeetimer(Xbee_handler);
-// SH + SL Address of receiving XBee
-// Steckdose
-XBeeAddress64 addr64; // = XBeeAddress64(0x7CB03EAA, 0x00B239EA);
+XBeeAddress64 addr64;
 // Lampe
 //XBeeAddress64 addr642 = XBeeAddress64(0x00178801, 0x02FE942A);
 // request / response classes
@@ -51,86 +47,91 @@ AtCommandRequest        acr;
 AtCommandResponse       arc_sp;
 RemoteAtCommandRequest  racr;
 RemoteAtCommandResponse racr_rp;
-
 // TASKS
 pthread_t xbeetask;
 // GLOBALS
 bool xbeeblocked;
-uint8_t payload_on[]  = { 0x01, 0x00, 0x01, 0x00, 0x10 };
-uint8_t payload_off[] = { 0x01, 0x00, 0x00, 0x00, 0x10 };
-
-
-//ZBExplicitTxRequest zbTx = ZBExplicitTxRequest(addr642, 0xFFFE,0x00,0x00,payload_on , sizeof(payload_on),  0x01, 0xE8, 0x0B, 0x0006, 0x0104);
-//ZBExplicitTxRequest zbTx4 = ZBExplicitTxRequest(addr642, 0xFFFE,0x00,0x00,payload_off, sizeof(payload_off), 0x01, 0xE8, 0x0B, 0x0006, 0x0104);
-//ZBTxRequest   zbTx1   = ZBTxRequest(addr64, payload_on, sizeof(payload_on));
-//ZBTxRequest   zbTx2   = ZBTxRequest(addr64, payload_off, sizeof(payload_off));
-//ZBTxStatusResponse txStatus = ZBTxStatusResponse();
-
-ZBExplicitRxResponse txStatus = ZBExplicitRxResponse();
-
 
 //----------------------------------------------------------
-// XBEESWITCHOFF_HANDLER (1h cycl)
+// READ REMOTEAT STATUS RESPONSE
 //----------------------------------------------------------
-void XbeeSwitchOff_handler(union sigval arg)
+bool readRemoteAtResponse(void)
 {
-    /*
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].name     = "steckdose";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].addr64   = "7CB03EAA00B239EA";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].addr16   = "FFFE";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].framet   = "11";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].destend  = "03";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].cluster  = "0006";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].profile  = "0104";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].payload1 = "0100010010";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].payload2 = "0100000010";
-*/
-    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],CLR);
-}
-
-//----------------------------------------------------------
-// XBEESWITCHON_HANDLER (1h cycl)
-//----------------------------------------------------------
-void XbeeSwitchOn_handler(union sigval arg)
-{
-/*
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].name     = "steckdose";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].addr64   = "7CB03EAA00B239EA";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].addr16   = "FFFE";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].framet   = "11";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].destend  = "03";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].cluster  = "0006";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].profile  = "0104";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].payload1 = "0100010010";
-    CTRLFILE->ini.XBEE[XBEE_TIMESW1].payload2 = "0100000010";
-*/
-    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],SET);
-    xbeeswitchontimer.StartTimer();
-    xbeeswitchofftimer.StartTimer();
-}
-
-//----------------------------------------------------------
-// XBEEALARM
-//----------------------------------------------------------
-void XbeeAlarm(uint8_t nr)
-{
-}
-
-//----------------------------------------------------------
-// XBEE_HANDLER
-//----------------------------------------------------------
-void Xbee_handler(union sigval arg)
-{
-   // TODO: Check Time an start stop intervaltimer
-    if(alarmactive && armed) {
-        if(!xbeeblocked) {
-            XbeeAlarm(0);
-            xbeeblocked = true;
-        }
-    } else {
-        XbeeAlarm(1);
-        xbeeblocked = false;
+    // read tx_status_response
+    if(!xbee.readPacket(500)) goto noresponse;
+    if (xbee.getResponse().getApiId() == REMOTE_AT_COMMAND_RESPONSE) {
+      xbee.getResponse().getRemoteAtCommandResponse(racr_rp);
+      if (racr_rp.isOk())
+      {
+          return true;
+      }
+      else {
+          Logger::Write(Logger::ERROR,"xbee no remote at delivery success");
+          cout << "xbee no delivery success" << endl;
+          return false;
+      }
     }
+noresponse:
+   Logger::Write(Logger::ERROR,"xbee no response");
+   cout << "xbee no response" << endl;
+   return false;
+}
+
+//----------------------------------------------------------
+// READ TX STATUS RESPONSE
+//----------------------------------------------------------
+bool readTxStatusResponse(void)
+{
+    // read tx_status_response
+    if(!xbee.readPacket(500)) goto noresponse;
+    // got a response!
+    if(xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE) {
+       xbee.getResponse().getZBTxStatusResponse(zbtx_rp);
+       if(zbtx_rp.getDeliveryStatus() == SUCCESS)
+       {
+          return true;
+       }
+       else {
+           Logger::Write(Logger::ERROR,"xbee no tx delivery success");
+           cout << "xbee no tx delivery success" << endl;
+           return false;
+       }
+    }
+    return true;
+noresponse:
+    Logger::Write(Logger::ERROR,"xbee no response");
+    cout << "xbee no response" << endl;
+    return false;
+}
+
+//----------------------------------------------------------
+// READ TXE STATUS RESPONSE
+//----------------------------------------------------------
+bool readTxeStatusResponse(void)
+{
+    // read tx_status_response
+    if(!xbee.readPacket(500)) goto noresponse;
+    // got a response!
+    if(xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE) {
+       xbee.getResponse().getZBTxStatusResponse(zbtx_rp);
+       if(zbtx_rp.getDeliveryStatus() == SUCCESS) {
+          if(!xbee.readPacket(500)) goto noresponse;
+          if(xbee.getResponse().getApiId() == ZB_EXPLICIT_RX_RESPONSE)
+             {
+                return true;
+             }
+       }
+       else {
+           Logger::Write(Logger::ERROR,"xbee no explicit delivery success");
+           cout << "xbee no explicit delivery success" << endl;
+           return false;
+       }
+    }
+    return true;
+noresponse:
+    Logger::Write(Logger::ERROR,"xbee no response");
+    cout << "xbee no response" << endl;
+    return false;
 }
 
 //----------------------------------------------------------
@@ -141,36 +142,20 @@ void XbeeCkeckResponse(unsigned int frametype)
     switch(frametype) {
        // AT Command Request
        case AT_COMMAND_REQUEST:
+           // TODO:
        break;
        // Tx Command Request
        case ZB_TX_REQUEST:
+           readTxStatusResponse();
        break;
        // Explizit Addressing Command Frame
        case ZB_EXPLICIT_TX_REQUEST:
-           // response
-           if(xbee.readPacket(500)) {
-              // got a response!
-              // should be a znet tx status
-              // should be a znet tx status
-              if(xbee.getResponse().getApiId() == ZB_EXPLICIT_RX_RESPONSE) {
-                 xbee.getResponse().getZBExplicitRxResponse(txStatus);
-                 // get the delivery status, the fifth byte
-                 if(txStatus.isError() == SUCCESS) {
-                     Logger::Write(Logger::INFO,"xbee send on frame success");
-                     cout << "XBEE: send on frame" << endl;
-                 }
-                 else {
-                     Logger::Write(Logger::ERROR,"xbee error send on frame");
-                     cout << "XBEE: error sending..." << endl;
-                 }
-               } else {
-                   Logger::Write(Logger::ERROR,"xbee no response");
-                   cout << "XBEE: getting no response" << endl;
-               }
-           }
+           // read tx_status_response
+           readTxeStatusResponse();
        break;
        // Remote AT Command Request
        case REMOTE_AT_REQUEST:
+           readRemoteAtResponse();
        break;
     }
 }
@@ -197,10 +182,13 @@ uint8_t      payload[255];
 uint8_t      *loadptr;
 uint8_t      loadlen;
 uint8_t      i,j;
+string       s;
+stringstream ss;
 
-
+    // preparing frame data
     frametype = stoul(frame->framet,nullptr,16);
     addr_64   = stoull(frame->addr64,nullptr,16);
+    if(addr_64 == 0x00) return;
     addr_16   = stoull(frame->addr16,nullptr,16);
     dst_end   = stoul(frame->destend,nullptr,16);
     cluster   = stoul(frame->cluster,nullptr,16);
@@ -215,9 +203,22 @@ uint8_t      i,j;
         payload[i] = stoi(hexbuf,nullptr,16);
     }
     loadptr   = payload;
+    // preparing logmessage
+    ss.str("");
+    ss << "xbee tx:"  << frame->name    << "; "
+       << "addr64: "  << frame->addr64  << "; "
+       << "addr16: "  << frame->addr16  << "; "
+       << "framet: "  << frame->framet  << "; "
+       << "destend:"  << frame->destend << "; "
+       << "cluster:"  << frame->cluster << "; "
+       << "profile:"  << frame->profile << "; "
+       << "payload:"  << ((setclr==SET)?frame->payload1:frame->payload2);
+    s = ss.str();
+    // send frame
     switch(frametype) {
        // AT Command Request
        case AT_COMMAND_REQUEST:
+           // TODO:
        break;
        // Tx Command Request
        case ZB_TX_REQUEST:
@@ -235,12 +236,87 @@ uint8_t      i,j;
          zbetx.setProfileId(profile);
          zbetx.setPayload(loadptr);
          zbetx.setPayloadLength(loadlen);
+         xbee.flush(BOTH);
+         Logger::Write(Logger::INFO,s);
          xbee.send(zbetx);
          XbeeCkeckResponse(frametype);
        break;
        // Remote AT Command Request
        case REMOTE_AT_REQUEST:
+         addr64 = XBeeAddress64(addr_64);
+         racr.setRemoteAddress64(addr64);
+         racr.setFrameId(frameid);
+         racr.setRemoteAddress16(addr_16);
+         racr.setCommand(&payload[0]);
+         racr.setCommandValue(&payload[2]);
+         racr.setCommandValueLength(loadlen-2);
+         racr.setApplyChanges(true);
+         xbee.flush(BOTH);
+         Logger::Write(Logger::INFO,s);
+         xbee.send(racr);
+         XbeeCkeckResponse(frametype);
+         racr.clearCommandValue();
        break;
+    }
+}
+
+//----------------------------------------------------------
+// XBEESWITCHOFF_HANDLER (1h cycl)
+//----------------------------------------------------------
+void XbeeSwitchOff_handler(union sigval arg)
+{
+    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],CLR);
+    usleep(50000);
+    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],CLR);
+}
+
+//----------------------------------------------------------
+// XBEESWITCHON_HANDLER (1h cycl)
+//----------------------------------------------------------
+void XbeeSwitchOn_handler(union sigval arg)
+{
+    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],SET);
+    usleep(50000);
+    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],SET);
+    xbeeswitchontimer.StartTimer();
+    xbeeswitchofftimer.StartTimer();
+}
+
+//----------------------------------------------------------
+// XBEE_HANDLER
+//----------------------------------------------------------
+void Xbee_handler(union sigval arg)
+{
+struct timeval tmnow;
+struct tm *tm;
+static bool timerstarted = false;
+
+    // interval switch
+    gettimeofday(&tmnow, NULL);
+    tm = localtime(&tmnow.tv_sec);
+// removed for testing
+/*
+    if((tm->tm_hour >= 20) && (tm->tm_hour < 5)) {
+       if(!timerstarted) {
+          timerstarted = true;
+          xbeeswitchontimer.StartTimer();
+       }
+    } else if(timerstarted) {
+        timerstarted = false;
+        xbeeswitchontimer.StopTimer();
+    }
+*/
+    // alarm
+    if(alarmactive && armed) {
+        if(!xbeeblocked) {
+            XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],SET);
+            XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],SET);
+            xbeeblocked = true;
+        }
+    } else if(xbeeblocked) {
+        XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],CLR);
+        XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],CLR);
+        xbeeblocked = false;
     }
 }
 
@@ -256,12 +332,23 @@ void *XbeeTask(void *value)
        xbeeblocked = true;
    } else {
        Logger::Write(Logger::INFO,"xbee powered on");
-       xbeeswitchontimer.Create_Timer(0x00,5);
+       // switchon every hour
+       xbeeswitchontimer.Create_Timer(0x00,3600);
+       //!!
+       // only for test
        xbeeswitchontimer.StartTimer();
-       xbeeswitchofftimer.Create_Timer(0x00,2);
+       // switch off after 900 sec
+       xbeeswitchofftimer.Create_Timer(0x00,900);
        // xbee mainloop cycle
        xbeetimer.Create_Timer(100,0x00);
        xbeetimer.StartTimer();
+       // switch off all xbee actors
+       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],CLR);
+       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],CLR);
+       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],CLR);
+       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],CLR);
+//!!       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF1],CLR);
+//!!       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF2],CLR);
    }
    // blockerinit
    xbeeblocked = false;

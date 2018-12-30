@@ -30,9 +30,12 @@ public:
         {
             sub_node.insert(make_pair(key, value));
         }
+        void ClearElement()
+        {
+            sub_node.clear();
+        }
         map<string, string> sub_node;
     };
-
     /** member of class INIParser */
     string& TrimString(string &str);
     int ReadINI(string path);

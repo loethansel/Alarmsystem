@@ -873,7 +873,9 @@ namespace BlackLib
         tempProperties.c_cflag |= CLOCAL;
         tempProperties.c_cflag |= CREAD;
 
-        tempProperties.c_iflag |= ICRNL;
+//!!        tempProperties.c_iflag |= ICRNL;
+        tempProperties.c_iflag &= ~(IXON | IXOFF | IXANY);
+        tempProperties.c_iflag &= ~(ICANON | ECHO | ECHOE | ISIG);
         tempProperties.c_oflag = 0;
         tempProperties.c_lflag = 0;
 

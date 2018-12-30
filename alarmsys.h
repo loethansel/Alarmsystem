@@ -28,7 +28,7 @@
 #include "analog/ain_proc.h"
 #include "files/ctrlfile.h"
 #include "files/iniparser.h"
-#include "xbee/xbee.h"
+//#include "xbee/xbee.h"
 #include "email/email.h"
 
 using namespace std;
@@ -52,7 +52,7 @@ extern ctrlfile     *CTRLFILE;
 // RELAIS
 extern serialrelais *RELAIS;
 // I2C-RELAIS
-extern xbee         *RADIORELAIS;
+//extern xbee         *RADIORELAIS;
 // EMAIL
 extern email        *EMAILALARM;
 

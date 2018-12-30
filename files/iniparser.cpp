@@ -67,6 +67,7 @@ int INIParser::ReadINI(string path)
                sn.InsertElement(sub_itr->key, sub_itr->value);
        }
        map_ini.insert(make_pair((*itr), sn));
+      sn.ClearElement();
     }
     return 1;
 }
