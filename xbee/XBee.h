@@ -805,6 +805,7 @@ public:
 	 */
 	uint8_t getNextFrameId();
     void flush(uint8_t dir);
+    ~XBee();
 private:
 	bool available();
 	uint8_t read();

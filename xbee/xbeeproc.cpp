@@ -30,6 +30,7 @@ void Xbee_handler(union sigval arg);
 void XbeeSwitchOn_handler(union sigval arg);
 void XbeeSwitchOff_handler(union sigval arg);
 void XbeeSetupSend(s_xbee *frame, bool setclr);
+void XBeeSwitch(uint8_t device,bool setclr);
 // CLASSES
 XBee     xbee;
 EmaTimer xbeeswitchontimer(XbeeSwitchOn_handler);
@@ -50,7 +51,7 @@ RemoteAtCommandResponse racr_rp;
 // TASKS
 pthread_t xbeetask;
 // GLOBALS
-bool xbeeblocked;
+bool xbee_ok;
 
 //----------------------------------------------------------
 // READ REMOTEAT STATUS RESPONSE
@@ -206,9 +207,9 @@ stringstream ss;
     // preparing logmessage
     ss.str("");
     ss << "xbee tx:"  << frame->name    << "; "
-       << "addr64: "  << frame->addr64  << "; "
-       << "addr16: "  << frame->addr16  << "; "
-       << "framet: "  << frame->framet  << "; "
+       << "addr64:"   << frame->addr64  << "; "
+       << "addr16:"   << frame->addr16  << "; "
+       << "framet:"   << frame->framet  << "; "
        << "destend:"  << frame->destend << "; "
        << "cluster:"  << frame->cluster << "; "
        << "profile:"  << frame->profile << "; "
@@ -294,8 +295,6 @@ static bool timerstarted = false;
     // interval switch
     gettimeofday(&tmnow, NULL);
     tm = localtime(&tmnow.tv_sec);
-// removed for testing
-/*
     if((tm->tm_hour >= 20) && (tm->tm_hour < 5)) {
        if(!timerstarted) {
           timerstarted = true;
@@ -305,20 +304,44 @@ static bool timerstarted = false;
         timerstarted = false;
         xbeeswitchontimer.StopTimer();
     }
-*/
-    // alarm
-    if(alarmactive && armed) {
-        if(!xbeeblocked) {
-            XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],SET);
-            XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],SET);
-            xbeeblocked = true;
-        }
-    } else if(xbeeblocked) {
-        XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],CLR);
-        XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],CLR);
-        xbeeblocked = false;
-    }
 }
+
+void XBeeSwitch(uint8_t device,bool setclr)
+{
+    if(!xbee_ok) return;
+    switch(device) {
+       case XBEEALARM:
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],setclr);
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],setclr);
+       break;
+       case XBEETIME:
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],setclr);
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],setclr);
+       break;
+       case XBEEONOFF:
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF1],setclr);
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF2],setclr);
+       break;
+       case XBEEALL:
+          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],setclr);
+          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],setclr);
+          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],setclr);
+          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],setclr);
+          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF1],setclr);
+          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF2],setclr);
+       break;
+       default:
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],setclr);
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],setclr);
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],setclr);
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],setclr);
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF1],setclr);
+           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF2],setclr);
+       break;
+    }
+
+}
+
 
 //----------------------------------------------------------
 // XBeeTASK
@@ -329,29 +352,21 @@ void *XbeeTask(void *value)
    if(!xbee.begin()) {
        Logger::Write(Logger::ERROR,"poweron-Error: xbee uart open failure");
        cout << "poweron-error: xbee startet nicht!" << endl;
-       xbeeblocked = true;
+       xbee_ok     = false;
    } else {
+       xbee_ok = true;
        Logger::Write(Logger::INFO,"xbee powered on");
        // switchon every hour
        xbeeswitchontimer.Create_Timer(0x00,3600);
-       //!!
-       // only for test
-       xbeeswitchontimer.StartTimer();
        // switch off after 900 sec
        xbeeswitchofftimer.Create_Timer(0x00,900);
        // xbee mainloop cycle
        xbeetimer.Create_Timer(100,0x00);
        xbeetimer.StartTimer();
-       // switch off all xbee actors
-       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],CLR);
-       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],CLR);
-       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],CLR);
-       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],CLR);
-//!!       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF1],CLR);
-//!!       XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF2],CLR);
+       XBeeSwitch(XBEEALARM,CLR);
+       XBeeSwitch(XBEETIME,CLR);
+       XBeeSwitch(XBEEONOFF,SET);
    }
-   // blockerinit
-   xbeeblocked = false;
    // LOOP
    while(1) {
        // INTERES SIGNAL PRGRAM END!

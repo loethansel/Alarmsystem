@@ -78,9 +78,9 @@ stringstream ss;
     if(!bme.performReading()) Logger::Write(Logger::ERROR,"bm680 read failure");
     else {
         ss << "bme680: "
-           << "temperature = " << bme.temperature << " *C; "
-           << "humidity = "    << bme.humidity    << " %; "
-           << "pressure = "    << bme.pressure    << " hPa; "
+           << "temperature = " << bme.temperature << "*C; "
+           << "humidity = "    << bme.humidity    << "%; "
+           << "pressure = "    << bme.pressure    << "hPa; "
            << "gas resist= "   << bme.gas_resistance << " -;";
         s = ss.str();
         Logger::Write(Logger::INFO,s);
@@ -176,6 +176,10 @@ string        s;
    ss << "caught signal: " << dec << sig << " => process termination..." << endl;
    s = ss.str();
    Logger::Write(Logger::INFO,s);
+   // ... LEAVING ALARMSYS
+   Logger::Write(Logger::INFO, "...leaving alarmsystem process!");
+   Logger::Stop();
+   cout << "...bye bye" << endl;
    exit(0);
 }
 
@@ -337,6 +341,7 @@ mutex mtx;
     CTRLFILE->Clear();
     retval = CTRLFILE->ReadIniFile();
     mtx.unlock();
+    XBeeSwitch(XBEEONOFF,CLR);
     if(retval) { Logger::Write(Logger::INFO,  "reading INI file during getting armed"); }
     else       { Logger::Write(Logger::ERROR, "could not read INI file ==> exit"); program_end = true; }
     armed          = true;
@@ -373,11 +378,12 @@ mutex mtx;
     silent_blocked = true;
     Logger::Write(Logger::INFO,"set alarm-actors off");
     mtx.lock();
-    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],CLR);
-    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],CLR);
     switch_relais(OFF);
     CTRLFILE->WriteSystemArmed(false);
     mtx.unlock();
+    XBeeSwitch(XBEETIME,CLR);
+    XBeeSwitch(XBEEALARM,CLR);
+    XBeeSwitch(XBEEONOFF,SET);
     OUT_LED->setValue(low);
     OUT_BUZZER->setValue(high);
     sleep(1);
@@ -397,6 +403,7 @@ void Alert::main_handler(void)
         cout << "set alarm actors" << endl;
         buzzertimer.StartTimer();
         switch_relais(ON);
+        XBeeSwitch(XBEEALARM,SET);
         EMAILALARM->send();
         buzzeralarm   = true;
         sendsms       = true;
@@ -474,10 +481,6 @@ Alert::Alert()
 
 Alert::~Alert()
 {
-    // ... LEAVING ALARMSYS
-    Logger::Write(Logger::INFO, "...leaving alarmsystem process!");
-    Logger::Stop();
-    cout << "...bye bye" << endl;
 }
 
 //---------------------------------------------------------------------------

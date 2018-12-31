@@ -32,9 +32,15 @@ using namespace BlackLib;
 using namespace logger;
 
 
-BlackUART serialxbee(UART4,Baud9600,ParityNo,StopOne,Char8);
-//BlackUART serialxbee(UARTUSB0,Baud9600,ParityNo,StopOne,Char8);
+//BlackUART serialxbee(UART4,Baud9600,ParityNo,StopOne,Char8);
+BlackUART serialxbee(UARTUSB0,Baud9600,ParityNo,StopOne,Char8);
 
+
+
+XBee::~XBee()
+{
+   serialxbee.close();
+}
 
 XBeeResponse::XBeeResponse()
 {
@@ -910,7 +916,8 @@ unsigned long long millisnow;
         gettimeofday(&tmnow, NULL);
         millisnow = (tmnow.tv_sec * 1000) +  (tmnow.tv_usec / 1000);
         // read packets
-        usleep(50000);
+        usleep(100000);
+//        usleep(50000);
      	readPacket();
      	if (getResponse().isAvailable())  return true;
      	else if (getResponse().isError()) return false;
@@ -934,7 +941,10 @@ unsigned int  errcnt = 0;
         // read again if not successful
         if(serialxbee.fail(BlackLib::BlackUART::readErr)) {
             if(++errcnt > MAX_FRAME_DATA_SIZE) return;
-            else continue;
+            else {
+                usleep(2000);
+                continue;
+            }
         }
 		// checksum includes all bytes starting with api id
         // buff[_pos] = b;
