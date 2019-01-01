@@ -32,8 +32,8 @@ using namespace BlackLib;
 using namespace logger;
 
 
-//BlackUART serialxbee(UART4,Baud9600,ParityNo,StopOne,Char8);
-BlackUART serialxbee(UARTUSB0,Baud9600,ParityNo,StopOne,Char8);
+BlackUART serialxbee(UART4,Baud9600,ParityNo,StopOne,Char8);
+//BlackUART serialxbee(UARTUSB0,Baud9600,ParityNo,StopOne,Char8);
 
 
 

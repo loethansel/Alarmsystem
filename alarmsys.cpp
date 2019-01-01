@@ -491,9 +491,16 @@ Alert::~Alert()
 int main()
 {
 struct sigaction action;
+stringstream ss;
+string        s;
 
+    ss << "initializing alarmsystem software version: " << VERSION << " "
+       << "date: " << __DATE__ << " "
+       << "time: " << __TIME__;
+    s = ss.str();
+    cout << s << endl;
     Logger::Start(Logger::DEBUG, LOGFILENAME);
-    Logger::Write(Logger::INFO,  "initializing alarmsystem");
+    Logger::Write(Logger::INFO, s);
 
     // Set Termination Handler
     action.sa_handler = termination_handler;

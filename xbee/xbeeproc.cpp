@@ -51,7 +51,8 @@ RemoteAtCommandResponse racr_rp;
 // TASKS
 pthread_t xbeetask;
 // GLOBALS
-bool xbee_ok;
+bool timerstarted = false;
+bool xbee_ok      = false;
 
 //----------------------------------------------------------
 // READ REMOTEAT STATUS RESPONSE
@@ -279,7 +280,7 @@ void XbeeSwitchOn_handler(union sigval arg)
     XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],SET);
     usleep(50000);
     XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],SET);
-    xbeeswitchontimer.StartTimer();
+    if(timerstarted) xbeeswitchontimer.StartTimer();
     xbeeswitchofftimer.StartTimer();
 }
 
@@ -290,13 +291,12 @@ void Xbee_handler(union sigval arg)
 {
 struct timeval tmnow;
 struct tm *tm;
-static bool timerstarted = false;
 
     // interval switch
     gettimeofday(&tmnow, NULL);
     tm = localtime(&tmnow.tv_sec);
-    if((tm->tm_hour >= 20) && (tm->tm_hour < 5)) {
-       if(!timerstarted) {
+    if((tm->tm_hour >= 20) || (tm->tm_hour < 5)) {
+       if(!timerstarted && armed) {
           timerstarted = true;
           xbeeswitchontimer.StartTimer();
        }
