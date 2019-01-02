@@ -57,7 +57,7 @@ bool xbee_ok      = false;
 //----------------------------------------------------------
 // READ REMOTEAT STATUS RESPONSE
 //----------------------------------------------------------
-bool readRemoteAtResponse(void)
+bool readRtAtRp(void)
 {
     // read tx_status_response
     if(!xbee.readPacket(500)) goto noresponse;
@@ -82,7 +82,7 @@ noresponse:
 //----------------------------------------------------------
 // READ TX STATUS RESPONSE
 //----------------------------------------------------------
-bool readTxStatusResponse(void)
+bool readTxRp(void)
 {
     // read tx_status_response
     if(!xbee.readPacket(500)) goto noresponse;
@@ -109,7 +109,7 @@ noresponse:
 //----------------------------------------------------------
 // READ TXE STATUS RESPONSE
 //----------------------------------------------------------
-bool readTxeStatusResponse(void)
+bool readTxeRp(void)
 {
     // read tx_status_response
     if(!xbee.readPacket(500)) goto noresponse;
@@ -148,16 +148,16 @@ void XbeeCkeckResponse(unsigned int frametype)
        break;
        // Tx Command Request
        case ZB_TX_REQUEST:
-           readTxStatusResponse();
+           readTxRp();
        break;
        // Explizit Addressing Command Frame
        case ZB_EXPLICIT_TX_REQUEST:
            // read tx_status_response
-           readTxeStatusResponse();
+           readTxeRp();
        break;
        // Remote AT Command Request
        case REMOTE_AT_REQUEST:
-           readRemoteAtResponse();
+           readRtAtRp();
        break;
     }
 }
@@ -291,10 +291,13 @@ void Xbee_handler(union sigval arg)
 {
 struct timeval tmnow;
 struct tm *tm;
+int onhour, offhour;
 
     // interval switch
     gettimeofday(&tmnow, NULL);
     tm = localtime(&tmnow.tv_sec);
+    onhour  = stoi(CTRLFILE->ini.TIMESW.onhour);
+    offhour = stoi(CTRLFILE->ini.TIMESW.offhour);
     if((tm->tm_hour >= 20) || (tm->tm_hour < 5)) {
        if(!timerstarted && armed) {
           timerstarted = true;
@@ -304,6 +307,7 @@ struct tm *tm;
         timerstarted = false;
         xbeeswitchontimer.StopTimer();
     }
+    xbeetimer.StartTimer();
 }
 
 void XBeeSwitch(uint8_t device,bool setclr)
@@ -348,6 +352,8 @@ void XBeeSwitch(uint8_t device,bool setclr)
 //----------------------------------------------------------
 void *XbeeTask(void *value)
 {
+int cyclesecs, onsecs;
+
    // start xbee on power up
    if(!xbee.begin()) {
        Logger::Write(Logger::ERROR,"poweron-Error: xbee uart open failure");
@@ -357,11 +363,13 @@ void *XbeeTask(void *value)
        xbee_ok = true;
        Logger::Write(Logger::INFO,"xbee powered on");
        // switchon every hour
-       xbeeswitchontimer.Create_Timer(0x00,3600);
+       cyclesecs  = stoi(CTRLFILE->ini.TIMESW.cyclesecs);
+       xbeeswitchontimer.Create_Timer(0x00,cyclesecs);
        // switch off after 900 sec
-       xbeeswitchofftimer.Create_Timer(0x00,900);
+       onsecs     = stoi(CTRLFILE->ini.TIMESW.onsecs);
+       xbeeswitchofftimer.Create_Timer(0x00,onsecs);
        // xbee mainloop cycle
-       xbeetimer.Create_Timer(100,0x00);
+       xbeetimer.Create_Timer(0,1);
        xbeetimer.StartTimer();
        XBeeSwitch(XBEEALARM,CLR);
        XBeeSwitch(XBEETIME,CLR);

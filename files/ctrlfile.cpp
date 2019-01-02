@@ -70,6 +70,10 @@ bool ctrlfile::CreateDefaultIniFile()
     SetValue("EMAIL", "alarmmail1",  "ralf@xxxndel.de");
     SetValue("EMAIL", "alarmmail2",  "email@messagebird.de");
     SetValue("EMAIL", "servicemail", "ralf@xxxndel.de");
+    SetValue("TIMESW", "onhour",   "22");
+    SetValue("TIMESW", "offhour",  "5");
+    SetValue("TIMESW", "cyclesecs","3600");
+    SetValue("TIMESW", "onsecs",   "900");
     // xbee section
     SetValue("XBEE_ALARMOUT1",   "name",    "Sirene");
     SetValue("XBEE_ALARMOUT1",   "addr64",  "0x0013A200418259D5");
@@ -208,13 +212,17 @@ bool retval;
         ini.TEL_NUM.number[2]    = GetValue("TEL_NUM" ,"number3");
         ini.TEL_NUM.name[2]      = GetValue("TEL_NUM" ,"name3");
         ini.TEL_NUM.numbercnt    = GetValue("TEL_NUM" ,"numbercnt");
-        ini.OUT_ACTIVE.out[0]  = GetValue("OUT_ACTIVE" ,"out1");
-        ini.OUT_ACTIVE.out[1]  = GetValue("OUT_ACTIVE" ,"out2");
-        ini.OUT_ACTIVE.out[2]  = GetValue("OUT_ACTIVE" ,"out3");
-        ini.OUT_ACTIVE.out[3]  = GetValue("OUT_ACTIVE" ,"out4");
-        ini.EMAIL.alarmmail[0] = GetValue("EMAIL" ,"alarmmail1");
-        ini.EMAIL.alarmmail[1] = GetValue("EMAIL" ,"alarmmail2");
-        ini.EMAIL.servicemail  = GetValue("EMAIL" ,"servicemail");
+        ini.OUT_ACTIVE.out[0]   = GetValue("OUT_ACTIVE" ,"out1");
+        ini.OUT_ACTIVE.out[1]   = GetValue("OUT_ACTIVE" ,"out2");
+        ini.OUT_ACTIVE.out[2]   = GetValue("OUT_ACTIVE" ,"out3");
+        ini.OUT_ACTIVE.out[3]   = GetValue("OUT_ACTIVE" ,"out4");
+        ini.EMAIL.alarmmail[0]  = GetValue("EMAIL" ,"alarmmail1");
+        ini.EMAIL.alarmmail[1]  = GetValue("EMAIL" ,"alarmmail2");
+        ini.EMAIL.servicemail   = GetValue("EMAIL" ,"servicemail");
+        ini.TIMESW.onhour       = GetValue("TIMESW","onhour");
+        ini.TIMESW.offhour      = GetValue("TIMESW","offhour");
+        ini.TIMESW.cyclesecs    = GetValue("TIMESW","cyclesecs");
+        ini.TIMESW.onsecs       = GetValue("TIMESW","onsecs");
         // xbee section alarm out
         ini.XBEE[XBEE_ALROUT1].name     = GetValue("XBEE_ALARMOUT1"   ,"name");
         ini.XBEE[XBEE_ALROUT1].addr64   = GetValue("XBEE_ALARMOUT1"   ,"addr64");

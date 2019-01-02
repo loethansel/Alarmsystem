@@ -94,6 +94,12 @@ typedef struct {
     string payload1;
     string payload2;
 } s_xbee;
+typedef struct {
+    string onhour;
+    string offhour;
+    string cyclesecs;
+    string onsecs;
+} s_timesw;
 // INISTRUCT
 typedef struct {
    s_default LOGLEVEL;
@@ -105,6 +111,7 @@ typedef struct {
    s_num     TEL_NUM;
    s_out     OUT_ACTIVE;
    s_mail    EMAIL;
+   s_timesw  TIMESW;
    s_xbee    XBEE[MAX_XBEE];
 } s_initval;
 /*

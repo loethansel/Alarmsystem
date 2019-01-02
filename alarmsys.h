@@ -66,7 +66,7 @@ extern email        *EMAILALARM;
 // Alarmtime in minutes
 #define ALARMTIME 1
 #define LOGFILENAME "/home/debian/Alarmsystem/files/alarm.log"
-#define VERSION "V1.0"
+#define VERSION "V1.1"
 
 
 class Alert
