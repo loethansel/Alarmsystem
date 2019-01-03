@@ -298,7 +298,7 @@ int onhour, offhour;
     tm = localtime(&tmnow.tv_sec);
     onhour  = stoi(CTRLFILE->ini.TIMESW.onhour);
     offhour = stoi(CTRLFILE->ini.TIMESW.offhour);
-    if((tm->tm_hour >= 20) || (tm->tm_hour < 5)) {
+    if((tm->tm_hour >= onhour) || (tm->tm_hour < offhour)) {
        if(!timerstarted && armed) {
           timerstarted = true;
           xbeeswitchontimer.StartTimer();

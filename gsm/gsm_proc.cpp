@@ -18,7 +18,11 @@ using namespace logger;
 
 // THREADS
 pthread_t gsmtask;
+#ifdef TARGET
 FONA FONA1;
+#else
+Adafruit_FONA FONA1;
+#endif
 
 // Interval Timer Handler
 void gsm_handler(void)
@@ -117,8 +121,13 @@ int i;
 // GSMTASK
 void *GsmTask(void *value)
 {
-   // start fona on power up
+
+    // start fona on power up
+#ifndef TARGET
+   if(!FONA1.begin()) {
+#else
    if(!FONA1.Power_On()) {
+#endif
        Logger::Write(Logger::ERROR,"poweron-Error: fona did not boot");
        cout << "poweron-error: Fona startet nicht!" << endl;
        Logger::Write(Logger::ERROR,"alarmsystem not armed, no buzzer");

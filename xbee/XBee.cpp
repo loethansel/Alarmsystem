@@ -31,11 +31,11 @@ using namespace std;
 using namespace BlackLib;
 using namespace logger;
 
-
+#ifdef TARGET
 BlackUART serialxbee(UART4,Baud9600,ParityNo,StopOne,Char8);
-//BlackUART serialxbee(UARTUSB0,Baud9600,ParityNo,StopOne,Char8);
-
-
+#else
+BlackUART serialxbee(UARTUSB0,Baud9600,ParityNo,StopOne,Char8);
+#endif
 
 XBee::~XBee()
 {
@@ -836,13 +836,11 @@ uint8_t XBee::getNextFrameId() {
 // Support for SoftwareSerial. Contributed by Paul Stoffregen
 bool XBee::begin()
 {
-
     bool isOpened = serialxbee.open(BlackLib::ReadWrite | BlackLib::NonBlock);
-//    serialxbee.close();
     // check the open succeed
-    if(!isOpened ) cout << "XBEE on " << serialxbee.getPortName() << " can\'t open!" << endl;
+    if(!isOpened ) cout << "xbee on " << serialxbee.getPortName() << " can\'t open!" << endl;
     else {
-        cout << "XBEE on " << serialxbee.getPortName() << " is open.." << endl;
+        cout << "xbee on " << serialxbee.getPortName() << " is open.." << endl;
         return true;
     }
     return false;
@@ -850,12 +848,14 @@ bool XBee::begin()
 
 bool XBee::serialopen()
 {
-    serialxbee.open(BlackLib::ReadWrite | BlackLib::NonBlock);
+    if(serialxbee.open(BlackLib::ReadWrite | BlackLib::NonBlock)) return true;
+    else return false;
 }
 
 bool XBee::serialclose()
 {
     serialxbee.close();
+    return true;
 }
 
 bool XBee::available()
@@ -917,7 +917,6 @@ unsigned long long millisnow;
         millisnow = (tmnow.tv_sec * 1000) +  (tmnow.tv_usec / 1000);
         // read packets
         usleep(100000);
-//        usleep(50000);
      	readPacket();
      	if (getResponse().isAvailable())  return true;
      	else if (getResponse().isError()) return false;
@@ -935,7 +934,7 @@ unsigned int  errcnt = 0;
 		// discard previous packet and start over
 		resetResponse();
 	}
-    while (available()) {
+    while(available()) {
         // read one character 9600 baud
         b = read();
         // read again if not successful

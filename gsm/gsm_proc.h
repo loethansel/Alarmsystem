@@ -15,6 +15,7 @@
 #include <iostream>
 // INCLUDE PROGRAM
 #include "fona.h"
+#include "Adafruit_FONA.h"
 #include "../alarmsys.h"
 #include "../files/ctrlfile.h"
 // xx SekundenCheck des GSM-Moduls

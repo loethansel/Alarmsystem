@@ -33,6 +33,8 @@
 
 using namespace std;
 using namespace BlackLib;
+// DEFINES
+#define TARGET
 
 // GLOBAL VARS
 extern bool sendsms;

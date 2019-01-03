@@ -10,10 +10,11 @@
 
 using namespace std;
 using namespace BlackLib;
-
-BlackGPIO  *pwr_out;
-BlackGPIO  *pwr_in;
-BlackGPIO  *rst_out;
+#ifdef TARGET
+BlackLib::BlackGPIO  *pwr_out;
+BlackLib::BlackGPIO  *pwr_in;
+BlackLib::BlackGPIO  *rst_out;
+#endif
 
 
 FONA::FONA() : BlackUART(UART2,Baud115200,ParityNo,StopOne,Char8)
@@ -32,11 +33,13 @@ FONA::FONA() : BlackUART(UART2,Baud115200,ParityNo,StopOne,Char8)
 
 int FONA::InitIo(void)
 {
+#ifdef TARGET
     pwr_out = new BlackGPIO(GPIO_60 ,output,FastMode); // P9.12
     pwr_in  = new BlackGPIO(GPIO_49 ,input);           // P9.23
     rst_out = new BlackGPIO(GPIO_48 ,output,FastMode); // P9.15
     pwr_out->setValue(high);
     rst_out->setValue(high);
+#endif
     return true;
 }
 
@@ -57,10 +60,12 @@ unsigned int i;
     sleep(1);
     // try for 3 times to power up
     for(i=0;i<3;i++) {
+#ifdef TARGET
         // button pressed for 1 second
         pwr_out->setValue(low);
         sleep(1);
         pwr_out->setValue(high);
+#endif
         // check pwrpin and AT\r => OK
         if(IsRunning()) {
             if(LiveCheck()) {
@@ -76,7 +81,7 @@ unsigned int i;
 int FONA::Power_Off(void)
 {
 unsigned int i;
-
+#ifdef TARGET
     // is the module down yet?
     if(pwr_in->getNumericValue() == low) {
         Reset_Module();
@@ -91,6 +96,7 @@ unsigned int i;
         // check the powerpin is low
         if(IsStopped()) return true;
     }
+#endif
     return false;
 }
 
@@ -101,8 +107,10 @@ int i;
    // wait x seconds till module powered down
    for(i=0;i<15;i++) {
      // check the powerpin in high
+#ifdef TARGET
      if(pwr_in->getNumericValue() == low) return true;
      sleep(1);
+#endif
    }
    return false;
 }
@@ -116,8 +124,10 @@ int i;
    // wait x seconds till module powered down
    for(i=0;i<15;i++) {
      // check the powerpin in high
+#ifdef TARGET
      if(pwr_in->getNumericValue() == high) return true;
      sleep(1);
+#endif
    }
    return false;
 }
@@ -125,9 +135,11 @@ int i;
 
 int FONA::Reset_Module(void)
 {
+#ifdef TARGET
     rst_out->setValue(low);
     usleep(500000);
     rst_out->setValue(high);
+#endif
     return true;
 }
 
@@ -383,7 +395,9 @@ int retval;
 FONA::~FONA()
 {
     close();
+#ifdef TARGET
     delete pwr_out;
     delete pwr_in;
     delete rst_out;
+#endif
 }
