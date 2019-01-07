@@ -39,19 +39,17 @@
 
 using namespace std;
 using namespace BlackLib;
-#ifndef TARGET
 BlackLib::BlackGPIO  pwr_out(GPIO_60,output,FastMode);
 BlackLib::BlackGPIO  pwr_in(GPIO_49,input);
 BlackLib::BlackGPIO  rst_out(GPIO_48,output,FastMode);
-#endif
 FonaSerial *mySerial;
 
 bool prog_char_strcmp(char *text, const char *ctext)
 {
 string hstr = text;
 
-   if(hstr.compare(ctext) == 0) return true;
-   else return false;
+   if(hstr.compare(ctext) == 0) return false;
+   else return true;
 }
 void prog_char_strcpy(char *text, const char *ctext)
 {
@@ -68,10 +66,14 @@ string hstr = ctext;
 char *prog_char_strstr(char *text, const char *ctext)
 {
 string hstr = text;
+int retval;
 
-   if(hstr.compare(ctext) != 0) return 0;
-   else return text;
+   retval = hstr.find(ctext);
+   if(retval != -1) {
+       return text;
+   } else return 0;
 }
+
 void DEBUG_PRINT(const char *text)
 {
    cout << text;
@@ -93,6 +95,7 @@ Adafruit_FONA::Adafruit_FONA(void)
   fonalive        = false;
   poweredon       = false;
   fonarssi        = false;
+  fonanet         = false;
   rxpegel_numeric = 0;
   credit_numeric  = 0;
   mySerial        = new FonaSerial();
@@ -103,7 +106,7 @@ int Adafruit_FONA::Power_On(void)
 unsigned int i;
 
     // force hardwarereset
-    Reset_Module();
+    begin();
     credit_aschar[0] = '-';
     credit_aschar[1] = '-';
     credit_aschar[2] = '.';
@@ -115,12 +118,6 @@ unsigned int i;
     sleep(1);
     // try for 3 times to power up
     for(i=0;i<3;i++) {
-#ifndef TARGET
-        // button pressed for 1 second
-        pwr_out.setValue(low);
-        sleep(1);
-        pwr_out.setValue(high);
-#endif
         // check pwrpin and AT\r => OK
         if(IsRunning()) {
             if(LiveCheck()) {
@@ -128,6 +125,10 @@ unsigned int i;
                 return true;
             }
         }
+        // button pressed for 1 second
+        pwr_out.setValue(low);
+        sleep(1);
+        pwr_out.setValue(high);
     }
     this->poweredon = false;
     return false;
@@ -136,10 +137,9 @@ unsigned int i;
 int Adafruit_FONA::Power_Off(void)
 {
 unsigned int i;
-#ifndef TARGET
     // is the module down yet?
     if(pwr_in.getNumericValue() == low) {
-        Reset_Module();
+        begin();
         return true;
     }
     // try to power down the module for 3 times
@@ -151,7 +151,6 @@ unsigned int i;
         // check the powerpin is low
         if(IsStopped()) return true;
     }
-#endif
     return false;
 }
 
@@ -162,10 +161,8 @@ int i;
    // wait x seconds till module powered down
    for(i=0;i<15;i++) {
      // check the powerpin in high
-#ifndef TARGET
      if(pwr_in.getNumericValue() == low) return true;
      sleep(1);
-#endif
    }
    return false;
 }
@@ -176,25 +173,11 @@ int i;
    // wait x seconds till module powered down
    for(i=0;i<15;i++) {
      // check the powerpin in high
-#ifndef TARGET
      if(pwr_in.getNumericValue() == high) return true;
      sleep(1);
-#endif
    }
    return false;
 }
-
-
-bool Adafruit_FONA::Reset_Module(void)
-{
-#ifndef TARGET
-    rst_out.setValue(low);
-    usleep(500000);
-    rst_out.setValue(high);
-#endif
-    return true;
-}
-
 
 Adafruit_FONA::~Adafruit_FONA()
 {
@@ -209,18 +192,23 @@ uint8_t Adafruit_FONA::type(void)
 
 bool Adafruit_FONA::begin()
 {
-   if(!mySerial->serialopen()) return false;
-#ifndef TARGET
+   if(!mySerial->isopen()) {
+      if(!mySerial->serialopen()) return false;
+   }
    pwr_out.setValue(high);
    rst_out.setValue(high);
    usleep(10000);
    rst_out.setValue(low);
    usleep(100000);
    rst_out.setValue(high);
-#endif
+   usleep(100000);
+   // button pressed for 1 second
+   pwr_out.setValue(low);
+   sleep(1);
+   pwr_out.setValue(high);
    DEBUG_PRINTLN("Attempting to open comm with ATs");
    // give 7 seconds to reboot
-  if(LiveCheck()) {
+  if(!LiveCheck()) {
     DEBUG_PRINTLN("Timeout: No response to AT... last ditch attempt.");
     sendCheckReply("AT", ok_reply);
     usleep(100000);
@@ -228,7 +216,7 @@ bool Adafruit_FONA::begin()
     usleep(100000);
     sendCheckReply("AT", ok_reply);
     usleep(100000);
-  }
+  } else poweredon = true;
   // turn off Echo!
   sendCheckReply("ATE0", ok_reply);
   usleep(100000);
@@ -276,6 +264,11 @@ bool Adafruit_FONA::begin()
 int Adafruit_FONA::RxLevelCheck()
 {
 int i;
+uint8_t state;
+
+    state = getNetworkStatus();
+    if(state == 1) this->fonanet = true;
+    else this->fonanet = false;
 
     for(i=0;i<5;i++) {
         rxpegel_numeric = getRSSI();
@@ -290,8 +283,7 @@ int i;
    return false;
 }
 
-bool Adafruit_FONA::LiveCheck()
-{
+bool Adafruit_FONA::LiveCheck() {
 int16_t timeout = 7000;
 
    while (timeout > 0) {
@@ -1748,14 +1740,15 @@ bool end = false;
       break;
     }
     end = false;
+    errcnt = 0;
     while(!end) {
-      errcnt = 0;
       char c =  mySerial->read();
       // read again if not successful
       if(!mySerial->available()) {
           if(++errcnt > 100) return 0;
           else {
-              usleep(2000);
+              usleep(1000);
+              timeout--;
               continue;
           }
       } else end = true;
@@ -1773,7 +1766,7 @@ bool end = false;
       //DEBUG_PRINT(c, HEX); DEBUG_PRINT("#"); DEBUG_PRINTLN(c);
       replyidx++;
     }
-    if (timeout == 0) {
+    if(timeout == 0) {
       //DEBUG_PRINTLN(F("TIMEOUT"));
       break;
     }
@@ -1877,13 +1870,24 @@ bool Adafruit_FONA::sendCheckReply(char *send, char *reply, uint16_t timeout)
 bool Adafruit_FONA::sendCheckReply(FONAFlashStringPtr send, FONAFlashStringPtr reply, uint16_t timeout)
 {
   if(!getReply(send, timeout)) return false;
-  return (prog_char_strcmp(replybuffer,reply) == 0);
+  if(prog_char_strcmp(replybuffer, reply) == 0) {
+      return true;
+  }  else {
+      return false;
+  }
+  return(prog_char_strcmp(replybuffer, reply) == 0);
+//  return (prog_char_strcmp(replybuffer,reply) == 0);
 }
 
 bool Adafruit_FONA::sendCheckReply(char* send, FONAFlashStringPtr reply, uint16_t timeout)
 {
   if(!getReply(send, timeout)) return false;
-  return(prog_char_strcmp(replybuffer, reply) == 0);
+  if(prog_char_strcmp(replybuffer, reply) == 0) {
+      return true;
+  }  else {
+      return false;
+  }
+//  return(prog_char_strcmp(replybuffer, reply) == 0);
 }
 
 

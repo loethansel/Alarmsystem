@@ -35,8 +35,8 @@ using namespace std;
 // Set the preferred SMS storage.
 //   Use "SM" for storage on the SIM.
 //   Use "ME" for internal storage on the FONA chip
-#define FONA_PREF_SMS_STORAGE "\"SM\""
-//#define FONA_PREF_SMS_STORAGE "\"ME\""
+//#define FONA_PREF_SMS_STORAGE "\"SM\""
+#define FONA_PREF_SMS_STORAGE "\"ME\""
 
 #define FONA_HEADSETAUDIO 0
 #define FONA_EXTAUDIO 1
@@ -78,7 +78,6 @@ public:
   int  Power_Off(void);
   int  IsStopped(void);
   bool IsRunning(void);
-  bool Reset_Module(void);
   bool begin(void);
   uint8_t type(void);
   bool LiveCheck();
@@ -181,6 +180,7 @@ public:
   bool sendCheckReply(char *send, char *reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   bool sendCheckReply(FONAFlashStringPtr send, FONAFlashStringPtr reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
   bool sendCheckReply(char* send, FONAFlashStringPtr reply, uint16_t timeout = FONA_DEFAULT_TIMEOUT_MS);
+  bool  fonanet;
   bool  fonarssi;
   bool  poweredon;
   bool  fonalive;

@@ -15,6 +15,7 @@ public:
     FonaSerial();
     bool serialopen();
     bool serialclose();
+    bool isopen();
     void flush();
     char read();
     bool read(char *readbuff, int len);

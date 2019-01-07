@@ -39,17 +39,24 @@ FonaSerial::FonaSerial()
     // TODO Auto-generated constructor stub
 }
 
+bool FonaSerial::isopen()
+{
+    return serialfona.isOpen();
+}
+
+
 bool FonaSerial::serialopen()
 {
     bool isOpened = serialfona.open(BlackLib::ReadWrite | BlackLib::NonBlock);
     // check the open succeed
-    if(!isOpened ) cout << "fona on " << serialfona.getPortName() << " can\'t open!" << endl;
+    if(!isOpened ) cout << "fona monster on " << serialfona.getPortName() << " can\'t open!" << endl;
     else {
-        cout << "fona on " << serialfona.getPortName() << " is open.." << endl;
+        cout << "fona monster on " << serialfona.getPortName() << " is open.." << endl;
         return true;
     }
     return false;
 }
+
 bool FonaSerial::serialclose()
 {
     serialfona.close();

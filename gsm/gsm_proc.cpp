@@ -18,11 +18,8 @@ using namespace logger;
 
 // THREADS
 pthread_t gsmtask;
-#ifdef TARGET
-FONA FONA1;
-#else
+//FONA FONA1;
 Adafruit_FONA FONA1;
-#endif
 
 // Interval Timer Handler
 void gsm_handler(void)
@@ -37,6 +34,7 @@ int numbercnt;
 stringstream ss;
 string        s;
 int i;
+char buff[40];
 
     // check live unconditionally
     if(FONA1.poweredon) livetimer++;
@@ -44,10 +42,13 @@ int i;
     if(FONA1.fonalive)  rssitimer++;
     // Output to Logfile every hour
     if(seccnt++ >= INFOTIME) {
+        FONA1.getSIMCCID(buff);
         ss.str("");
         ss << "fona = "
  	       << "alive: "  << (FONA1.fonalive?"ok":"bad")  << "; "
+ 	       << "ccid:"    << buff <<"; "
            << "rx: "     << (FONA1.fonarssi?"ok":"bad")  << "; "
+           << "net:"     << (FONA1.fonanet?"ok":"bad")   << "; "
 		   << "rssi: "   << tostr(FONA1.rxpegel_numeric) << "; "
 		   << "credit: " << FONA1.credit_aschar          << ";";
         s = ss.str();
@@ -123,11 +124,8 @@ void *GsmTask(void *value)
 {
 
     // start fona on power up
-#ifndef TARGET
    if(!FONA1.begin()) {
-#else
-   if(!FONA1.Power_On()) {
-#endif
+// if(!FONA1.Power_On()) {
        Logger::Write(Logger::ERROR,"poweron-Error: fona did not boot");
        cout << "poweron-error: Fona startet nicht!" << endl;
        Logger::Write(Logger::ERROR,"alarmsystem not armed, no buzzer");
