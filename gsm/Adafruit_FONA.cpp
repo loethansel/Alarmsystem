@@ -17,6 +17,7 @@
     // next line per http://postwarrior.com/arduino-ethershield-error-prog_char-does-not-name-a-type/
 
 #include <ctime>
+#include <mutex>
 #include <time.h>
 #include <fstream>
 #include <string>
@@ -39,10 +40,13 @@
 
 using namespace std;
 using namespace BlackLib;
+using namespace logger;
 BlackLib::BlackGPIO  pwr_out(GPIO_60,output,FastMode);
 BlackLib::BlackGPIO  pwr_in(GPIO_49,input);
 BlackLib::BlackGPIO  rst_out(GPIO_48,output,FastMode);
 FonaSerial *mySerial;
+
+uint8_t readbytes;
 
 bool prog_char_strcmp(char *text, const char *ctext)
 {
@@ -76,11 +80,15 @@ int retval;
 
 void DEBUG_PRINT(const char *text)
 {
+#ifdef FONADEBUG
    cout << text;
+#endif
 }
 void DEBUG_PRINTLN(const char *text)
 {
+#ifdef FONADEBUG
    cout << text << endl;
+#endif
 }
 
 Adafruit_FONA::Adafruit_FONA(void)
@@ -98,6 +106,7 @@ Adafruit_FONA::Adafruit_FONA(void)
   fonanet         = false;
   rxpegel_numeric = 0;
   credit_numeric  = 0;
+  // SERIAL INTERFACE
   mySerial        = new FonaSerial();
 }
 
@@ -192,9 +201,36 @@ uint8_t Adafruit_FONA::type(void)
 
 bool Adafruit_FONA::begin()
 {
+stringstream ss;
+string s;
+string directionbuff[] = {"0","in","out","both"};
+
    if(!mySerial->isopen()) {
       if(!mySerial->serialopen()) return false;
    }
+   // GPIOS
+   ss.clear(); ss.str("");
+   ss << "pwr_out GPIO"  << dec << to_string(pwr_out.getName()) << " "
+      << "exported: "  << (pwr_out.fail(BlackLib::BlackGPIO::exportErr)?"false":"true") << " "
+      << "direction: " << directionbuff[pwr_out.getDirection()] << " "
+      << "value: "     << pwr_out.getValue();
+   s = ss.str();
+   Logger::Write(Logger::INFO,s);
+   ss.clear(); ss.str("");
+   ss << "pwr_in GPIO"  << dec << to_string(pwr_in.getName()) << " "
+      << "exported: "  << (pwr_in.fail(BlackLib::BlackGPIO::exportErr)?"false":"true") << " "
+      << "direction: " << directionbuff[pwr_in.getDirection()] << " "
+      << "value: "     << pwr_in.getValue();
+   s = ss.str();
+   Logger::Write(Logger::INFO,s);
+   ss.clear(); ss.str("");
+   ss << "rst_out GPIO"  << dec << to_string(rst_out.getName()) << " "
+      << "exported: "  << (rst_out.fail(BlackLib::BlackGPIO::exportErr)?"false":"true") << " "
+      << "direction: " << directionbuff[rst_out.getDirection()] << " "
+      << "value: "     << rst_out.getValue();
+   s = ss.str();
+   Logger::Write(Logger::INFO,s);
+
    pwr_out.setValue(high);
    rst_out.setValue(high);
    usleep(10000);
@@ -371,6 +407,14 @@ char number[50];
    tbuff = ss.str();
    length = tbuff.copy(number,tbuff.size(),0);
    number[length] = '\0';
+   //!!
+   message[0] = 'T';
+   message[1] = 'E';
+   message[2] = 'S';
+   message[3] = 'T';
+   message[4] = '1';
+   message[5] = 0;
+//!!
    if(!sendSMS(number,message)) return false;
    else return true;
 }
@@ -776,7 +820,11 @@ bool Adafruit_FONA::sendSMS(char *smsaddr, char *smsmsg)
   char sendcmd[30] = "AT+CMGS=\"";
   strncpy(sendcmd+9, smsaddr, 30-9-2);  // 9 bytes beginning, 2 bytes for close quote + null
   sendcmd[strlen(sendcmd)] = '\"';
-  if(!sendCheckReply(sendcmd,"> ")) return false;
+  if(!sendCheckReply(sendcmd,"> ",2000)) {
+      cout << "no > :o(" << endl;
+      cout << "SendCMD: " << sendcmd << endl;
+      return false;
+  }
 
   DEBUG_PRINT("> ");
   cout << smsmsg;
@@ -1730,10 +1778,12 @@ uint16_t idx = 0;
 
 uint8_t Adafruit_FONA::readline(uint16_t timeout, bool multiline)
 {
-uint16_t replyidx = 0;
+static uint8_t replyidx;
 int errcnt = 0;
 bool end = false;
 
+  readbytes = 0;
+  replyidx = 0;
   while(timeout--) {
     if(replyidx >= 254) {
       //DEBUG_PRINTLN(F("SPACE"));
@@ -1773,17 +1823,28 @@ bool end = false;
     usleep(1000);
   }
   replybuffer[replyidx] = 0;  // null term
+  //!!
+  readbytes = replyidx;
+  cout << "L=" << std::dec << static_cast<int>(replyidx) << endl;
   return replyidx;
 }
 
 uint8_t Adafruit_FONA::getReply(char *send, uint16_t timeout)
 {
+static uint8_t readcnt;
+
   flushInput();
   DEBUG_PRINT("\t---> "); DEBUG_PRINTLN(send);
+  //!!
+  cout << "SEND: " << send << endl;
   mySerial->println(send);
-  uint8_t l = readline(timeout);
+  readcnt = Adafruit_FONA::readline(timeout);
+  if(readcnt==2) cout << "l=2!!!!!!!!!!!!!!" << endl;
+  cout << "l=" << std::dec << static_cast<int>(readcnt) << endl;
+  cout << "REPLY: " << replybuffer << endl;
   DEBUG_PRINT ("\t<--- "); DEBUG_PRINTLN(replybuffer);
-  return l;
+//  return readcnt;
+  return readbytes;
 }
 
 uint8_t Adafruit_FONA::getReply(FONAFlashStringPtr send, uint16_t timeout)

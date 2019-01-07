@@ -10,12 +10,12 @@
 using namespace std;
 
 
-ctrlfile::ctrlfile(void)
+CtrlFile::CtrlFile(void)
 {
    armed_from_file = false;
 }
 
-bool ctrlfile::CreateDefaultIniFile()
+bool CtrlFile::CreateDefaultIniFile()
 {
     SetValue("LOGLEVEL","logdebug",  "false");
     SetValue("ADDRESS", "standort",  "Flugschule");
@@ -150,7 +150,7 @@ bool ctrlfile::CreateDefaultIniFile()
     return true;
 }
 
-bool ctrlfile::CheckFileExists(const char *checkfilename)
+bool CtrlFile::CheckFileExists(const char *checkfilename)
 {
 ifstream  checkfile;
 
@@ -160,7 +160,7 @@ ifstream  checkfile;
    return true;
 }
 
-bool ctrlfile::ReadIniFile(void)
+bool CtrlFile::ReadIniFile(void)
 {
 bool retval;
 
@@ -305,20 +305,20 @@ bool retval;
 }
 
 // Reads all files in the system
-bool ctrlfile::ReadActFiles(void)
+bool CtrlFile::ReadActFiles(void)
 {
    if(!ReadSystemArmed())  return false;
    return true;
 }
 
-bool ctrlfile::WriteActFiles(void)
+bool CtrlFile::WriteActFiles(void)
 {
    if(!WriteSystemArmed(false)) return false;
    return true;
 }
 
 
-bool ctrlfile::WriteSystemArmed(bool ctrl)
+bool CtrlFile::WriteSystemArmed(bool ctrl)
 {
 ofstream     armedfile;
 const char   armedfilename[] = ARMEDFILE;
@@ -337,7 +337,7 @@ const char   armedfilename[] = ARMEDFILE;
    return true;
 }
 
-bool ctrlfile::ReadSystemArmed(void)
+bool CtrlFile::ReadSystemArmed(void)
 {
 ifstream     armedfile;
 string       s;
@@ -369,8 +369,8 @@ bool       readval;
 }
 
 
-ctrlfile::~ctrlfile(void)
+CtrlFile::~CtrlFile(void)
 {
-	ctrlfile::WriteActFiles();
+	CtrlFile::WriteActFiles();
 }
 

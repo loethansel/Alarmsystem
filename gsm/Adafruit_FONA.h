@@ -25,6 +25,8 @@
 //#include "includes/platform/FONAPlatform.h"
 using namespace std;
 
+#undef FONADEBUG
+
 #define FONA800L 1
 #define FONA800H 6
 #define FONA808_V1 2

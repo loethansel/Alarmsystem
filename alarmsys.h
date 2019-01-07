@@ -44,20 +44,8 @@ extern bool silentactive;
 extern bool program_end;
 extern bool contactopen;
 
-extern BlackGPIO    *OUT_BUZZER;
-extern BlackGPIO    *OUT_LED;
-// INPUTS
-extern BlackGPIO    *IN_SCHARF;
-extern BlackGPIO    *IN_UNSCHARF;
 // FILES
-extern ctrlfile     *CTRLFILE;
-// RELAIS
-extern serialrelais *RELAIS;
-// I2C-RELAIS
-//extern xbee         *RADIORELAIS;
-// EMAIL
-extern email        *EMAILALARM;
-
+extern CtrlFile     *ctrlfile;
 
 #define ON   true
 #define OFF  false

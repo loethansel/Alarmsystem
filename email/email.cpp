@@ -20,13 +20,13 @@
 using namespace std;
 using namespace logger;
 
-email::email()
+Email::Email()
 {
     // TODO Auto-generated constructor stub
 
 }
 
-bool email::send(void)
+bool Email::send(void)
 {
 FILE  *fp;
 
@@ -45,7 +45,7 @@ FILE  *fp;
 }
 
 
-email::~email()
+Email::~Email()
 {
     // TODO Auto-generated destructor stub
 }

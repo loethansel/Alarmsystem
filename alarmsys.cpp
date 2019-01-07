@@ -53,19 +53,18 @@ EmaTimer inputtimer(input_handler);
 EmaTimer buzzertimer(buzzer_handler);
 EmaTimer disarmtimer(disarm_handler);
 EmaTimer autoalarmtimer(autoalarm_handler);
-
 // OUTPUTS
-BlackGPIO    *OUT_BUZZER;
-BlackGPIO    *OUT_LED;
+BlackLib::BlackGPIO  out_buzzer(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode); // P9.25
+BlackLib::BlackGPIO  out_led(BlackLib::GPIO_115,BlackLib::output,BlackLib::FastMode);    // P9.27
 // INPUTS
-BlackGPIO    *IN_SCHARF;
-BlackGPIO    *IN_UNSCHARF;
-// FILES
-ctrlfile     *CTRLFILE;
-// I2C-RELAIS
-serialrelais *RELAIS;
+BlackLib::BlackGPIO  in_arm(BlackLib::GPIO_50 ,BlackLib::input);    // P9.14
+BlackLib::BlackGPIO  in_disarm(BlackLib::GPIO_51 ,BlackLib::input); // P9.16
+// I2C-serialrelais
+SerialRelais serialrelais;
 // EMAIL
-email        *EMAILALARM;
+Email        emailalarm;
+// FILES
+CtrlFile     *ctrlfile;
 
 //----------------------------------------------------------
 // BME680_HANDLER 1h
@@ -100,8 +99,8 @@ static bool pressedlock = false;
     // read input arm file every second
     //-----------------------------------------------------------
     if(cnt++ >= 10) {
-        CTRLFILE->ReadActFiles();
-        if(!(CTRLFILE->armed_from_file))  {
+        ctrlfile->ReadActFiles();
+        if(!(ctrlfile->armed_from_file))  {
             if(armed) {
                 ema.set_unarmed();
                 autoalarmtimer.StopTimer();
@@ -113,13 +112,13 @@ static bool pressedlock = false;
     //-----------------------------------------------------------
     // read input arm taster
     //-----------------------------------------------------------
-    if(((IN_SCHARF->getNumericValue() == high) || (CTRLFILE->armed_from_file)))  {
+    if(((in_arm.getNumericValue() == high) || (ctrlfile->armed_from_file)))  {
         ema.set_armed();
     }
     //-----------------------------------------------------------
     // read input disarm taster
     //-----------------------------------------------------------
-    if(IN_UNSCHARF->getNumericValue() == high)  {
+    if(in_disarm.getNumericValue() == high)  {
         if(!pressedlock) {
             ema.set_unarmed();
             autoalarmtimer.StopTimer();
@@ -136,9 +135,9 @@ static bool pressedlock = false;
 void buzzer_handler(union sigval arg)
 {
     if(buzzeralarm) {
-        OUT_BUZZER->setValue(high);
+        out_buzzer.setValue(high);
         usleep(100000);
-        OUT_BUZZER->setValue(low);
+        out_buzzer.setValue(low);
         usleep(100000);
     }
     buzzertimer.StartTimer();
@@ -151,7 +150,7 @@ void disarm_handler(union sigval arg)
 {
     Logger::Write(Logger::INFO,"alarmtime elapsed => set auto disarmed");
     ema.set_unarmed();
-    if(CTRLFILE->ini.ALARM.autoalarm == "true") autoalarmtimer.StartTimer();
+    if(ctrlfile->ini.ALARM.autoalarm == "true") autoalarmtimer.StartTimer();
 }
 
 //----------------------------------------------------------
@@ -162,7 +161,7 @@ void autoalarm_handler(union sigval arg)
 static int autocount = 0;
 
     Logger::Write(Logger::INFO,"autoalarm => set auto armed");
-    if(++autocount <= stoi(CTRLFILE->ini.ALARM.autocnt)) ema.set_armed();
+    if(++autocount <= stoi(ctrlfile->ini.ALARM.autocnt)) ema.set_armed();
 }
 
 //----------------------------------------------------------
@@ -192,26 +191,26 @@ bool Alert::file_work(void)
 bool retval;
 
     // INI-FILE
-    if(!CTRLFILE->CheckFileExists(INIFILENAME)) {
+    if(!ctrlfile->CheckFileExists(INIFILENAME)) {
         // Write Inifile first
-        CTRLFILE->CreateDefaultIniFile();
-        retval =  CTRLFILE->WriteINI(INIFILENAME);
+        ctrlfile->CreateDefaultIniFile();
+        retval =  ctrlfile->WriteINI(INIFILENAME);
         if(retval) { Logger::Write(Logger::INFO, "creating default INI"); }
         else       { Logger::Write(Logger::ERROR, "could not create default INI"); return false; }
     } else {
-        retval = CTRLFILE->ReadIniFile();
+        retval = ctrlfile->ReadIniFile();
         if(retval) { Logger::Write(Logger::INFO, "reading INI file"); }
         else       { Logger::Write(Logger::ERROR, "could not read INI file"); return false; }
     }
     // ACTION-CONTROL FILES
     Logger::Write(Logger::INFO, "read/write action control-files");
-    if(!CTRLFILE->CheckFileExists(ARMEDFILE)) {
-        retval = CTRLFILE->WriteActFiles();
+    if(!ctrlfile->CheckFileExists(ARMEDFILE)) {
+        retval = ctrlfile->WriteActFiles();
         if(retval) { Logger::Write(Logger::INFO, "creating controlfile"); }
         else       { Logger::Write(Logger::ERROR,"could not create controlfile => exit"); return false; }
     } else {
         // Read Action ctrlfiles
-        retval = CTRLFILE->ReadActFiles();
+        retval = ctrlfile->ReadActFiles();
         if(retval)  { Logger::Write(Logger::INFO, "reading controlfile"); }
         else        { Logger::Write(Logger::ERROR,"could not read controlfile => exit"); return false; }
     }
@@ -223,23 +222,44 @@ bool retval;
 //----------------------------------------------------------
 void Alert::init_system(void)
 {
+stringstream ss;
+string s;
+string directionbuff[] = {"0","in","out","both"};
 
     // INPUTS
-    Logger::Write(Logger::INFO, "input GPIO's exported to /sys/class/gpio");
-    IN_SCHARF   = new BlackGPIO(BlackLib::GPIO_50 ,BlackLib::input); // P9.14
-    IN_UNSCHARF = new BlackGPIO(BlackLib::GPIO_51 ,BlackLib::input); // P9.16
+    ss.clear(); ss.str("");
+    ss << "in_arm GPIO"  << dec << to_string(in_arm.getName()) << " "
+       << "exported: "  << (in_arm.fail(BlackLib::BlackGPIO::exportErr)?"false":"true") << " "
+       << "direction: " << directionbuff[in_arm.getDirection()] << " "
+       << "value: "     << in_arm.getValue();
+    s = ss.str();
+    Logger::Write(Logger::INFO,s);
+    ss.clear(); ss.str("");
+    ss << "in_disarm GPIO"  << dec << to_string(in_disarm.getName()) << " "
+       << "exported: "  << (in_disarm.fail(BlackLib::BlackGPIO::exportErr)?"false":"true") << " "
+       << "direction: " << directionbuff[in_disarm.getDirection()] << " "
+       << "value: "     << in_disarm.getValue();
+    s = ss.str();
+    Logger::Write(Logger::INFO,s);
     // OUTPUTS
-    Logger::Write(Logger::INFO, "output GPIO's exported to /sys/class/gpio");
-    OUT_BUZZER = new BlackGPIO(BlackLib::GPIO_117,BlackLib::output,BlackLib::FastMode); // P9.25
-    OUT_BUZZER->setValue(low);
-    OUT_LED    = new BlackGPIO(BlackLib::GPIO_115,BlackLib::output,BlackLib::FastMode); // P9.27
-    OUT_LED->setValue(low);
+    out_buzzer.setValue(low);
+    ss.clear(); ss.str("");
+    ss << "out_buzzer GPIO"  << dec << to_string(out_buzzer.getName()) << " "
+       << "exported: "  << (out_buzzer.fail(BlackLib::BlackGPIO::exportErr)?"false":"true") << " "
+       << "direction: " << directionbuff[out_buzzer.getDirection()] << " "
+       << "value: "     << out_buzzer.getValue();
+    s = ss.str();
+    Logger::Write(Logger::INFO,s);
+    out_led.setValue(low);
+    ss.clear(); ss.str("");
+    ss << "out_led GPIO"  << dec << to_string(out_led.getName()) << " "
+       << "exported: "  << (out_led.fail(BlackLib::BlackGPIO::exportErr)?"false":"true") << " "
+       << "direction: " << directionbuff[out_led.getDirection()] << " "
+       << "value: "     << out_led.getValue();
+    s = ss.str();
+    Logger::Write(Logger::INFO,s);
     // FILES
-    CTRLFILE = new ctrlfile;
-    // RELAIS
-    RELAIS   = new serialrelais;
-    // EMAILALARM
-    EMAILALARM = new email;
+    ctrlfile = new CtrlFile;
     // GPIO-OVERVIEW
     // GPIO_117 == P9.25  (OUT)
     // GPIO_115 == P9.27  (OUT)
@@ -292,33 +312,27 @@ bool Alert::init_tasks(void)
     if(pthread_join(maintask,NULL)) return false;
     Logger::Write(Logger::INFO, "joined MAIN-task => exit");
     // free the memory
-    delete IN_SCHARF;   // P9.14
-    delete IN_UNSCHARF; // P9.16
-    delete OUT_BUZZER;  // P9.25
-    delete OUT_LED;     // P9.27
-    delete CTRLFILE;    // File-IO Modul
-    delete RELAIS;      // I2C-Relais-Modul
-    delete EMAILALARM;  // emailalarm
+    delete ctrlfile;    // File-IO Modul
     return true;
 }
 
 //-----------------------------------------------------------
-// SWITCH_RELAIS (serial)
+// SWITCH_serialrelais (serial)
 //----------------------------------------------------------
 bool Alert::switch_relais(bool onoff)
-{   // switch on serial relais
+{   // switch on serial serialrelais
     if(onoff) {
-        if(CTRLFILE->ini.OUT_ACTIVE.out[0] == "true") RELAIS->turn_on_channel(1);
-        if(CTRLFILE->ini.OUT_ACTIVE.out[1] == "true") RELAIS->turn_on_channel(2);
-        if(CTRLFILE->ini.OUT_ACTIVE.out[2] == "true") RELAIS->turn_on_channel(3);
-        if(CTRLFILE->ini.OUT_ACTIVE.out[3] == "true") RELAIS->turn_on_channel(4);
+        if(ctrlfile->ini.OUT_ACTIVE.out[0] == "true") serialrelais.turn_on_channel(1);
+        if(ctrlfile->ini.OUT_ACTIVE.out[1] == "true") serialrelais.turn_on_channel(2);
+        if(ctrlfile->ini.OUT_ACTIVE.out[2] == "true") serialrelais.turn_on_channel(3);
+        if(ctrlfile->ini.OUT_ACTIVE.out[3] == "true") serialrelais.turn_on_channel(4);
     }
-    // switch off serial relais
+    // switch off serial serialrelais
     else {
-        RELAIS->turn_off_channel(1);
-        RELAIS->turn_off_channel(2);
-        RELAIS->turn_off_channel(3);
-        RELAIS->turn_off_channel(4);
+        serialrelais.turn_off_channel(1);
+        serialrelais.turn_off_channel(2);
+        serialrelais.turn_off_channel(3);
+        serialrelais.turn_off_channel(4);
     }
     return true;
 }
@@ -337,9 +351,9 @@ mutex mtx;
     cout << "scharf" << endl;
     Logger::Write(Logger::INFO, "alarmsystem ARMED!");
     mtx.lock();
-    CTRLFILE->WriteSystemArmed(true);
-    CTRLFILE->Clear();
-    retval = CTRLFILE->ReadIniFile();
+    ctrlfile->WriteSystemArmed(true);
+    ctrlfile->Clear();
+    retval = ctrlfile->ReadIniFile();
     mtx.unlock();
     XBeeSwitch(XBEEONOFF,CLR);
     if(retval) { Logger::Write(Logger::INFO,  "reading INI file during getting armed"); }
@@ -347,16 +361,18 @@ mutex mtx;
     armed          = true;
     alarm_blocked  = false;
     silent_blocked = false;
-    OUT_LED->setValue(high);
+    out_led.setValue(high);
     for(i=0;i<3;i++) {
-       OUT_BUZZER->setValue(high);
+       out_buzzer.setValue(high);
        usleep(250000);
-       OUT_BUZZER->setValue(low);
+       out_buzzer.setValue(low);
        usleep(250000);
     }
-    OUT_BUZZER->setValue(high);
+    out_buzzer.setValue(high);
     usleep(500000);
-    OUT_BUZZER->setValue(low);
+    out_buzzer.setValue(low);
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! only for testing
+    sendsms       = true;
 }
 
 
@@ -379,15 +395,15 @@ mutex mtx;
     Logger::Write(Logger::INFO,"set alarm-actors off");
     mtx.lock();
     switch_relais(OFF);
-    CTRLFILE->WriteSystemArmed(false);
+    ctrlfile->WriteSystemArmed(false);
     mtx.unlock();
     XBeeSwitch(XBEETIME,CLR);
     XBeeSwitch(XBEEALARM,CLR);
     XBeeSwitch(XBEEONOFF,SET);
-    OUT_LED->setValue(low);
-    OUT_BUZZER->setValue(high);
+    out_led.setValue(low);
+    out_buzzer.setValue(high);
     sleep(1);
-    OUT_BUZZER->setValue(low);
+    out_buzzer.setValue(low);
 }
 
 // Interval Timer Handler
@@ -404,7 +420,7 @@ void Alert::main_handler(void)
         buzzertimer.StartTimer();
         switch_relais(ON);
         XBeeSwitch(XBEEALARM,SET);
-        EMAILALARM->send();
+        emailalarm.send();
         buzzeralarm   = true;
         sendsms       = true;
         alarm_blocked = true;
@@ -415,7 +431,7 @@ void Alert::main_handler(void)
     //-----------------------------------------------------------
     if(silentactive && armed) {
         if(!silent_blocked) {
-            EMAILALARM->send();
+            emailalarm.send();
             sendsms        = true;
             silent_blocked = true;
         }
@@ -431,16 +447,16 @@ uint8_t version;
 int     alarmtime;
 int     autoalarmtime;
 
-   // check relais
-   version      = RELAIS->getFirmwareVersion();
-   if(version == 0) Logger::Write(Logger::ERROR, "serial relais did not respond");
-   // switch off serial relais
+   // check serialrelais
+   version      = serialrelais.getFirmwareVersion();
+   if(version == 0) Logger::Write(Logger::ERROR, "serial serialrelais did not respond");
+   // switch off serial serialrelais
    ema.switch_relais(OFF);
    // setuup for disarm after alarm
-   alarmtime = stoi(CTRLFILE->ini.ALARM.alarmtime);
+   alarmtime = stoi(ctrlfile->ini.ALARM.alarmtime);
    disarmtimer.Create_Timer(0x00,(alarmtime*60));
    // setup for autoarm after alarm ends
-   autoalarmtime = stoi(CTRLFILE->ini.ALARM.autotime);
+   autoalarmtime = stoi(ctrlfile->ini.ALARM.autotime);
    autoalarmtimer.Create_Timer(0x00,(autoalarmtime*60));
    // set alarm buzzer cyclic
    buzzertimer.Create_Timer(100,0);

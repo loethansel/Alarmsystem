@@ -30,11 +30,11 @@ using namespace BlackLib;
 #define CMD_READ_I2C_ADDR       0x12
 #define CMD_READ_FIRMWARE_VER   0x13
 // CLASSES
-class serialrelais : public BlackI2C
+class SerialRelais : public BlackI2C
 {
     public:
-        serialrelais(void);
-        ~serialrelais(void);
+        SerialRelais(void);
+        ~SerialRelais(void);
         /**
          * @brief Change device address from old_addr to new_addr.
          * @param new_addr, the address to use.

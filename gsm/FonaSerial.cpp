@@ -28,11 +28,8 @@
 
 using namespace std;
 using namespace BlackLib;
-#ifndef TARGET
+// CLASSES
 BlackUART  serialfona(UART2,Baud115200,ParityNo,StopOne,Char8);
-#else
-BlackUART  serialfona(UART5,Baud115200,ParityNo,StopOne,Char8);
-#endif
 
 FonaSerial::FonaSerial()
 {

@@ -209,7 +209,7 @@ unsigned long meas_end;
 #endif
 
   struct bme680_field_data data;
-  cout << "Getting sensor data" << endl;
+  // cout << "Getting sensor data" << endl;
   int8_t rslt = bme680_get_sensor_data(&data, &sensor_param);
   if (rslt != BME680_OK) return false;
 

@@ -19,6 +19,7 @@
 
 #include <mutex>
 #include "XBee.h"
+#include "../alarmsys.h"
 #include "../logger/logger.h"
 #include "../blacklib/BlackLib.h"
 #include "../blacklib/BlackUART/BlackUART.h"

@@ -70,13 +70,13 @@ char buff[40];
     if(sendsms) {
         // if live and rri send the email if not wait .....
         if(FONA1.fonarssi && FONA1.fonalive) {
-            numbercnt = stoi(CTRLFILE->ini.TEL_NUM.numbercnt);
+            numbercnt = stoi(ctrlfile->ini.TEL_NUM.numbercnt);
             for(i=0;i<numbercnt;i++) {
                 ss.str("");
                 ss.clear();
-                ss << CTRLFILE->ini.ALARM.alarmtext;
+                ss << ctrlfile->ini.ALARM.alarmtext;
                 s = ss.str();
-                if(FONA1.SendSms(CTRLFILE->ini.TEL_NUM.number[i],s)) {
+                if(FONA1.SendSms(ctrlfile->ini.TEL_NUM.number[i],s)) {
                     FONA1.CreditCheck();
                     FONA1.deleteSMS_all();
                 }

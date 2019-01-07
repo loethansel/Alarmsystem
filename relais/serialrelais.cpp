@@ -11,7 +11,7 @@ using namespace std;
 using namespace BlackLib;
 
 
-serialrelais::serialrelais() : BlackI2C(BlackLib::I2C_2, 0x11)
+SerialRelais::SerialRelais() : BlackI2C(BlackLib::I2C_2, 0x11)
 {
     channel_state = 0;
     bool isOpened = open( BlackLib::ReadWrite | BlackLib::NonBlock );
@@ -21,7 +21,7 @@ serialrelais::serialrelais() : BlackI2C(BlackLib::I2C_2, 0x11)
     }
 }
 
-uint8_t serialrelais::getFirmwareVersion(void)
+uint8_t SerialRelais::getFirmwareVersion(void)
 {
 uint8_t firmwareversion;
 
@@ -31,36 +31,36 @@ uint8_t firmwareversion;
    return firmwareversion;
 }
 
-void serialrelais::changeI2CAddress(uint8_t new_addr)
+void SerialRelais::changeI2CAddress(uint8_t new_addr)
 {
     writeByte(CMD_SAVE_I2C_ADDR,new_addr);
     setDeviceAddress(new_addr);
 }
 
-uint8_t serialrelais::getChannelState(void)
+uint8_t SerialRelais::getChannelState(void)
 {
     return channel_state;
 }
 
-void serialrelais::channelCtrl(uint8_t state)
+void SerialRelais::channelCtrl(uint8_t state)
 {
   channel_state = state;
   writeByte(CMD_CHANNEL_CTRL,channel_state);
 }
 
-void serialrelais::turn_on_channel(uint8_t channel)
+void SerialRelais::turn_on_channel(uint8_t channel)
 {
   channel_state |= (1 << (channel-1));
   writeByte(CMD_CHANNEL_CTRL,channel_state);
 }
 
-void serialrelais::turn_off_channel(uint8_t channel)
+void SerialRelais::turn_off_channel(uint8_t channel)
 {
   channel_state &= ~(1 << (channel-1));
   writeByte(CMD_CHANNEL_CTRL,channel_state);
 }
 
-uint8_t serialrelais::scanI2CDevice(void)
+uint8_t SerialRelais::scanI2CDevice(void)
 {
   uint8_t error = 0, address = 0, result = 0;
   int nDevices;
@@ -111,6 +111,6 @@ uint8_t serialrelais::scanI2CDevice(void)
   return result;
 }
 
-serialrelais::~serialrelais() {
+SerialRelais::~SerialRelais() {
 	// TODO Auto-generated destructor stub
 }

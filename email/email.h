@@ -13,12 +13,12 @@
 namespace std
 {
 
-class email
+class Email
 {
 public:
-    email();
+    Email();
     bool send(void);
-    virtual ~email();
+    virtual ~Email();
 };
 
 } /* namespace std */

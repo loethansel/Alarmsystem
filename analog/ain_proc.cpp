@@ -53,7 +53,7 @@ stringstream ss;
 string       s;
 
     ss.str(""); ss.clear();
-    ss << CTRLFILE->ini.ALARM_LINE.linetext[line] << ": " << fixed << setprecision(3) << valueFloat[line];
+    ss << ctrlfile->ini.ALARM_LINE.linetext[line] << ": " << fixed << setprecision(3) << valueFloat[line];
     s = ss.str();
     Logger::Write(Logger::INFO,s);
 }
@@ -65,11 +65,11 @@ void linelog_handler(union sigval arg)
 {
 int i;
     // log only if linelog is chosen
-    if(CTRLFILE->ini.ALARM_LINE.linelog == "true") {
+    if(ctrlfile->ini.ALARM_LINE.linelog == "true") {
         // log the analog values every hour
         for(i=0;i<MAXLINE;i++) {
             // print only active lines
-            if(CTRLFILE->ini.ALARM_LINE.lineactv[i] == "true") linetologger(i);
+            if(ctrlfile->ini.ALARM_LINE.lineactv[i] == "true") linetologger(i);
         }
     }
     linelogtimer.StartTimer();
@@ -86,10 +86,10 @@ float        umin, umax;
 bool         result;
 
     // return true for lines that should not be checked
-    if(CTRLFILE->ini.ALARM_LINE.lineactv[line] == "false") return true;
+    if(ctrlfile->ini.ALARM_LINE.lineactv[line] == "false") return true;
     // read min/max thresholds
-    umin = stof(CTRLFILE->ini.ALARM_LINE.lineumin[line]);
-    umax = stof(CTRLFILE->ini.ALARM_LINE.lineumax[line]);
+    umin = stof(ctrlfile->ini.ALARM_LINE.lineumin[line]);
+    umax = stof(ctrlfile->ini.ALARM_LINE.lineumax[line]);
     // read analog values
     switch(line) {
         case 0:
@@ -141,7 +141,7 @@ int  i;
         if(!read_analogvalues(i)) {
             linethreshold[i] = true;
             if(armed) {
-                if(CTRLFILE->ini.ALARM_LINE.linecalm[i] == "true") silentactive = true;
+                if(ctrlfile->ini.ALARM_LINE.linecalm[i] == "true") silentactive = true;
                 else alarmactive = true;
                 linetologger(i);
             }

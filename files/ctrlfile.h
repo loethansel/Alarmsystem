@@ -155,7 +155,7 @@ typedef struct {
 
 
 // CLASSES
-class ctrlfile : public INIParser
+class CtrlFile : public INIParser
 {
 public:
    bool       armed_from_file;
@@ -163,8 +163,8 @@ public:
    //   s_msgtxt   msgtext;
    //   s_alarmnum alarmnum;
    //   s_lines    lines;
-   ctrlfile();
-   virtual ~ctrlfile();
+   CtrlFile();
+   virtual ~CtrlFile();
    bool CheckFileExists(const char *checkfilename);
    bool CreateDefaultIniFile(void);
    bool ReadIniFile(void);
@@ -172,9 +172,6 @@ public:
    bool WriteActFiles(void);
    bool WriteSystemArmed(bool ctrl);
    bool ReadSystemArmed(void);
-   //   bool ReadAlarmNumbers(void);
-   //   bool ReadAlarmMsg(void);
-   //   bool ReadLines(void);
 private:
    bool ReadInifile(void);
 };

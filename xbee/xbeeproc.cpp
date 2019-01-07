@@ -267,9 +267,9 @@ stringstream ss;
 //----------------------------------------------------------
 void XbeeSwitchOff_handler(union sigval arg)
 {
-    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],CLR);
+    XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_TIMESW1],CLR);
     usleep(50000);
-    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],CLR);
+    XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_TIMESW2],CLR);
 }
 
 //----------------------------------------------------------
@@ -277,9 +277,9 @@ void XbeeSwitchOff_handler(union sigval arg)
 //----------------------------------------------------------
 void XbeeSwitchOn_handler(union sigval arg)
 {
-    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],SET);
+    XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_TIMESW1],SET);
     usleep(50000);
-    XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],SET);
+    XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_TIMESW2],SET);
     if(timerstarted) xbeeswitchontimer.StartTimer();
     xbeeswitchofftimer.StartTimer();
 }
@@ -296,8 +296,8 @@ int onhour, offhour;
     // interval switch
     gettimeofday(&tmnow, NULL);
     tm = localtime(&tmnow.tv_sec);
-    onhour  = stoi(CTRLFILE->ini.TIMESW.onhour);
-    offhour = stoi(CTRLFILE->ini.TIMESW.offhour);
+    onhour  = stoi(ctrlfile->ini.TIMESW.onhour);
+    offhour = stoi(ctrlfile->ini.TIMESW.offhour);
     if((tm->tm_hour >= onhour) || (tm->tm_hour < offhour)) {
        if(!timerstarted && armed) {
           timerstarted = true;
@@ -315,32 +315,32 @@ void XBeeSwitch(uint8_t device,bool setclr)
     if(!xbee_ok) return;
     switch(device) {
        case XBEEALARM:
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],setclr);
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ALROUT1],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ALROUT2],setclr);
        break;
        case XBEETIME:
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],setclr);
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_TIMESW1],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_TIMESW2],setclr);
        break;
        case XBEEONOFF:
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF1],setclr);
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF2],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ON_OFF1],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ON_OFF2],setclr);
        break;
        case XBEEALL:
-          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],setclr);
-          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],setclr);
-          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],setclr);
-          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],setclr);
-          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF1],setclr);
-          XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF2],setclr);
+          XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ALROUT1],setclr);
+          XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ALROUT2],setclr);
+          XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_TIMESW1],setclr);
+          XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_TIMESW2],setclr);
+          XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ON_OFF1],setclr);
+          XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ON_OFF2],setclr);
        break;
        default:
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT1],setclr);
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ALROUT2],setclr);
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW1],setclr);
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_TIMESW2],setclr);
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF1],setclr);
-           XbeeSetupSend(&CTRLFILE->ini.XBEE[XBEE_ON_OFF2],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ALROUT1],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ALROUT2],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_TIMESW1],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_TIMESW2],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ON_OFF1],setclr);
+           XbeeSetupSend(&ctrlfile->ini.XBEE[XBEE_ON_OFF2],setclr);
        break;
     }
 
@@ -363,10 +363,10 @@ int cyclesecs, onsecs;
        xbee_ok = true;
        Logger::Write(Logger::INFO,"xbee powered on");
        // switchon every hour
-       cyclesecs  = stoi(CTRLFILE->ini.TIMESW.cyclesecs);
+       cyclesecs  = stoi(ctrlfile->ini.TIMESW.cyclesecs);
        xbeeswitchontimer.Create_Timer(0x00,cyclesecs);
        // switch off after 900 sec
-       onsecs     = stoi(CTRLFILE->ini.TIMESW.onsecs);
+       onsecs     = stoi(ctrlfile->ini.TIMESW.onsecs);
        xbeeswitchofftimer.Create_Timer(0x00,onsecs);
        // xbee mainloop cycle
        xbeetimer.Create_Timer(0,1);
