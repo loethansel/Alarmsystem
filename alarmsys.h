@@ -52,7 +52,7 @@ extern CtrlFile     *ctrlfile;
 #define SET  true
 #define CLR  false
 // Infotime in seconds
-#define INFOTIME  10
+#define INFOTIME  60
 //#define INFOTIME  3600
 // Alarmtime in minutes
 #define ALARMTIME 1

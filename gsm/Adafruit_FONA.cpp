@@ -45,15 +45,27 @@ BlackLib::BlackGPIO  pwr_out(GPIO_60,output,FastMode);
 BlackLib::BlackGPIO  pwr_in(GPIO_49,input);
 BlackLib::BlackGPIO  rst_out(GPIO_48,output,FastMode);
 FonaSerial *mySerial;
-
-uint8_t readbytes;
-
-bool prog_char_strcmp(char *text, const char *ctext)
+/*
+bool prog_char_strlcmp(char *text, const char *ctext, int len)
 {
 string hstr = text;
 
-   if(hstr.compare(ctext) == 0) return false;
+   if(hstr.compare(ctext,len) == 0) return false;
    else return true;
+}
+*/
+bool prog_char_strcmp(char *text, const char *ctext)
+{
+string hstr1  = text;
+string hstr2  = ctext;
+int    len    = hstr2.length();
+
+   if(hstr1.compare(0,len,ctext) == 0) {
+       return 0;
+   }
+   else {
+       return 1;
+   }
 }
 void prog_char_strcpy(char *text, const char *ctext)
 {
@@ -106,7 +118,7 @@ Adafruit_FONA::Adafruit_FONA(void)
   fonanet         = false;
   rxpegel_numeric = 0;
   credit_numeric  = 0;
-  // SERIAL INTERFACE
+  // serial interface
   mySerial        = new FonaSerial();
 }
 
@@ -114,30 +126,17 @@ int Adafruit_FONA::Power_On(void)
 {
 unsigned int i;
 
-    // force hardwarereset
-    begin();
-    credit_aschar[0] = '-';
-    credit_aschar[1] = '-';
-    credit_aschar[2] = '.';
-    credit_aschar[3] = '-';
-    credit_aschar[4] = '-';
-    credit_aschar[5] = '\0';
-    credit_numeric   = 0.0;
-    // wait a moment
-    sleep(1);
     // try for 3 times to power up
     for(i=0;i<3;i++) {
-        // check pwrpin and AT\r => OK
-        if(IsRunning()) {
-            if(LiveCheck()) {
-                this->poweredon = true;
-                return true;
-            }
-        }
         // button pressed for 1 second
         pwr_out.setValue(low);
         sleep(1);
         pwr_out.setValue(high);
+        // check pwrpin and AT\r => OK
+        if(IsRunning()) {
+           this->poweredon = true;
+           return true;
+        }
     }
     this->poweredon = false;
     return false;
@@ -208,6 +207,13 @@ string directionbuff[] = {"0","in","out","both"};
    if(!mySerial->isopen()) {
       if(!mySerial->serialopen()) return false;
    }
+   credit_aschar[0] = '-';
+   credit_aschar[1] = '-';
+   credit_aschar[2] = '.';
+   credit_aschar[3] = '-';
+   credit_aschar[4] = '-';
+   credit_aschar[5] = '\0';
+   credit_numeric   = 0.0;
    // GPIOS
    ss.clear(); ss.str("");
    ss << "pwr_out GPIO"  << dec << to_string(pwr_out.getName()) << " "
@@ -230,7 +236,8 @@ string directionbuff[] = {"0","in","out","both"};
       << "value: "     << rst_out.getValue();
    s = ss.str();
    Logger::Write(Logger::INFO,s);
-
+   // hardware reset and power button
+   Logger::Write(Logger::INFO,"fona force hardware reset");
    pwr_out.setValue(high);
    rst_out.setValue(high);
    usleep(10000);
@@ -239,24 +246,29 @@ string directionbuff[] = {"0","in","out","both"};
    rst_out.setValue(high);
    usleep(100000);
    // button pressed for 1 second
-   pwr_out.setValue(low);
-   sleep(1);
-   pwr_out.setValue(high);
+   if(!Power_On()) {
+       Logger::Write(Logger::ERROR,"fona power button failed");
+       return false;
+   } else {
+       Logger::Write(Logger::INFO,"fona power button succeeded");
+   }
+   // reset and power button end
    DEBUG_PRINTLN("Attempting to open comm with ATs");
    // give 7 seconds to reboot
-  if(!LiveCheck()) {
+  if(!LiveCheck(7000)) {
+    Logger::Write(Logger::ERROR,"first fona livecheck failed");
     DEBUG_PRINTLN("Timeout: No response to AT... last ditch attempt.");
-    sendCheckReply("AT", ok_reply);
-    usleep(100000);
-    sendCheckReply("AT", ok_reply);
-    usleep(100000);
-    sendCheckReply("AT", ok_reply);
-    usleep(100000);
+    if(!LiveCheck(7000)) {
+       Logger::Write(Logger::ERROR,"second fona livecheck failed");
+    } else poweredon = true;
   } else poweredon = true;
   // turn off Echo!
   sendCheckReply("ATE0", ok_reply);
   usleep(100000);
-  if(!sendCheckReply("ATE0", ok_reply)) return false;
+  if(!sendCheckReply("ATE0", ok_reply)) {
+      Logger::Write(Logger::ERROR,"third fona livecheck failed (ATE0)");
+      return false;
+  }
   // turn on hangupitude
   sendCheckReply("AT+CVHU=0", ok_reply);
   usleep(100000);
@@ -267,17 +279,22 @@ string directionbuff[] = {"0","in","out","both"};
   readline(500, true);
   DEBUG_PRINT("\t<--- ");
   DEBUG_PRINTLN(replybuffer);
-
+  // check module type out
   if (prog_char_strstr(replybuffer,"SIM808 R14") != 0) {
     _type = FONA808_V2;
+    Logger::Write(Logger::INFO,"fona is SIM808 R14");
   } else if(prog_char_strstr(replybuffer,"SIM808 R13") != 0) {
     _type = FONA808_V1;
+    Logger::Write(Logger::INFO,"fona is SIM808 R13");
   } else if(prog_char_strstr(replybuffer,"SIM800 R13") != 0) {
     _type = FONA800L;
+    Logger::Write(Logger::INFO,"fona is SIM800 R13");
   } else if(prog_char_strstr(replybuffer,"SIMCOM_SIM5320A") != 0) {
     _type = FONA3G_A;
+    Logger::Write(Logger::INFO,"fona is SIMCOM_SIM5320A");
   } else if(prog_char_strstr(replybuffer,"SIMCOM_SIM5320E") != 0) {
     _type = FONA3G_E;
+    Logger::Write(Logger::INFO,"fona is SIMCOM_SIM5320E");
   }
   if (_type == FONA800L) {
     // determine if L or H
@@ -288,12 +305,17 @@ string directionbuff[] = {"0","in","out","both"};
     DEBUG_PRINTLN(replybuffer);
     if (prog_char_strstr(replybuffer,"SIM800H") != 0) {
       _type = FONA800H;
+      Logger::Write(Logger::INFO,"fona is SIM800H");
     }
   }
+  // set strage memory to ME
 #if defined(FONA_PREF_SMS_STORAGE)
-    sendCheckReply("AT+CPMS=" FONA_PREF_SMS_STORAGE "," FONA_PREF_SMS_STORAGE "," FONA_PREF_SMS_STORAGE, ok_reply);
+  if(sendCheckReply("AT+CPMS=" FONA_PREF_SMS_STORAGE "," FONA_PREF_SMS_STORAGE "," FONA_PREF_SMS_STORAGE, "+CPMS: ") != 0) {
+      Logger::Write(Logger::ERROR,"fona set memory storage to ME failed (AT+CPMS=)");
+  } else {
+      Logger::Write(Logger::INFO,"fona set memory storage to ME succeeded (AT+CPMS= 0,255,0,255,0,255)");
+  }
 #endif
-
   return true;
 }
 
@@ -319,12 +341,13 @@ uint8_t state;
    return false;
 }
 
-bool Adafruit_FONA::LiveCheck() {
-int16_t timeout = 7000;
+bool Adafruit_FONA::LiveCheck(uint16_t timeout) {
 
-   while (timeout > 0) {
+   while(timeout > 0) {
+       mySerial->read();
        while(mySerial->available()) { mySerial->read(); usleep(40000); }
        if(sendCheckReply("AT", ok_reply)) break;
+       mySerial->read();
        while(mySerial->available()) { mySerial->read(); usleep(40000); }
        if(sendCheckReply("AT","AT")) break;
        usleep(500000);
@@ -390,6 +413,7 @@ int  length;
 char message[255];
 char number[50];
 
+   // messagetext
    tbuff.clear();
    tbuff = credit_aschar;
    ss.str(""); ss.clear();
@@ -397,26 +421,25 @@ char number[50];
    cout << ss.str() << endl;
    tbuff.clear();
    tbuff = ss.str();
-   cout << tbuff.c_str() << endl;
    length = tbuff.copy(message,tbuff.size(),0);
    message[length] = '\0';
-   // Phonenumber
+   // phonenumber
    tbuff.clear();
    ss.str(""); ss.clear();
    ss << telnumber;
    tbuff = ss.str();
    length = tbuff.copy(number,tbuff.size(),0);
    number[length] = '\0';
-   //!!
-   message[0] = 'T';
-   message[1] = 'E';
-   message[2] = 'S';
-   message[3] = 'T';
-   message[4] = '1';
-   message[5] = 0;
-//!!
-   if(!sendSMS(number,message)) return false;
-   else return true;
+   if(!sendSMS(number,message)) {
+       ss << "sms send to number:" << tbuff << " failed";
+       Logger::Write(Logger::ERROR,ss.str());
+       return false;
+   }
+   else {
+       ss << "sms send to number:" << tbuff << " succeeded";
+       Logger::Write(Logger::INFO,ss.str());
+       return true;
+   }
 }
 
 /********* Serial port ********************************************/
@@ -816,16 +839,19 @@ bool Adafruit_FONA::getSMSSender(uint8_t i, char *sender, int senderlen)
 
 bool Adafruit_FONA::sendSMS(char *smsaddr, char *smsmsg)
 {
+stringstream ss;
+
   if(!sendCheckReply("AT+CMGF=1", ok_reply)) return false;
   char sendcmd[30] = "AT+CMGS=\"";
-  strncpy(sendcmd+9, smsaddr, 30-9-2);  // 9 bytes beginning, 2 bytes for close quote + null
+  // 9 bytes beginning, 2 bytes for close quote + null
+  strncpy(sendcmd+9, smsaddr, 30-9-2);
   sendcmd[strlen(sendcmd)] = '\"';
   if(!sendCheckReply(sendcmd,"> ",2000)) {
-      cout << "no > :o(" << endl;
-      cout << "SendCMD: " << sendcmd << endl;
+      ss << "no > :o( "
+         << "SendCMD: " << sendcmd << " failed";
+      Logger::Write(Logger::ERROR,ss.str());
       return false;
   }
-
   DEBUG_PRINT("> ");
   cout << smsmsg;
   mySerial->println(smsmsg);
@@ -839,9 +865,15 @@ bool Adafruit_FONA::sendSMS(char *smsaddr, char *smsmsg)
     readline(200);
     DEBUG_PRINT("Line 2: "); DEBUG_PRINTLN(replybuffer);
   }
-  readline(10000); // read the +CMGS reply, wait up to 10 seconds!!!
+  readline(10000);
+  // read the +CMGS reply, wait up to 10 seconds!!!
   //DEBUG_PRINT("Line 3: "); DEBUG_PRINTLN(strlen(replybuffer));
-  if(strstr(replybuffer, "+CMGS") == 0) return false;
+  if(strstr(replybuffer, "+CMGS") == 0) {
+      ss << "no +CMGS reply was: "
+         << replybuffer;
+      Logger::Write(Logger::ERROR,ss.str());
+      return false;
+  }
   readline(1000); // read OK
   //DEBUG_PRINT("* "); DEBUG_PRINTLN(replybuffer);
   if(strcmp(replybuffer, "OK") != 0) return false;
@@ -1779,29 +1811,17 @@ uint16_t idx = 0;
 uint8_t Adafruit_FONA::readline(uint16_t timeout, bool multiline)
 {
 static uint8_t replyidx;
-int errcnt = 0;
-bool end = false;
 
-  readbytes = 0;
   replyidx = 0;
   while(timeout--) {
     if(replyidx >= 254) {
       //DEBUG_PRINTLN(F("SPACE"));
       break;
     }
-    end = false;
-    errcnt = 0;
-    while(!end) {
+    // read so much char as possible, if empty break
+    do {
       char c =  mySerial->read();
-      // read again if not successful
-      if(!mySerial->available()) {
-          if(++errcnt > 100) return 0;
-          else {
-              usleep(1000);
-              timeout--;
-              continue;
-          }
-      } else end = true;
+      if(!mySerial->available()) break;
       if(c == '\r') continue;
       if(c == 0xA) {
         // the first 0x0A is ignored
@@ -1815,7 +1835,7 @@ bool end = false;
       replybuffer[replyidx] = c;
       //DEBUG_PRINT(c, HEX); DEBUG_PRINT("#"); DEBUG_PRINTLN(c);
       replyidx++;
-    }
+    } while(mySerial->available());
     if(timeout == 0) {
       //DEBUG_PRINTLN(F("TIMEOUT"));
       break;
@@ -1823,9 +1843,6 @@ bool end = false;
     usleep(1000);
   }
   replybuffer[replyidx] = 0;  // null term
-  //!!
-  readbytes = replyidx;
-  cout << "L=" << std::dec << static_cast<int>(replyidx) << endl;
   return replyidx;
 }
 
@@ -1835,16 +1852,10 @@ static uint8_t readcnt;
 
   flushInput();
   DEBUG_PRINT("\t---> "); DEBUG_PRINTLN(send);
-  //!!
-  cout << "SEND: " << send << endl;
   mySerial->println(send);
-  readcnt = Adafruit_FONA::readline(timeout);
-  if(readcnt==2) cout << "l=2!!!!!!!!!!!!!!" << endl;
-  cout << "l=" << std::dec << static_cast<int>(readcnt) << endl;
-  cout << "REPLY: " << replybuffer << endl;
+  readcnt = readline(timeout);
   DEBUG_PRINT ("\t<--- "); DEBUG_PRINTLN(replybuffer);
-//  return readcnt;
-  return readbytes;
+  return readcnt;
 }
 
 uint8_t Adafruit_FONA::getReply(FONAFlashStringPtr send, uint16_t timeout)

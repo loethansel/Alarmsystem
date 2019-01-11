@@ -76,6 +76,7 @@ gsm \
 logger \
 relais \
 rtc \
+socketclient \
 timer \
 xbee \
 

@@ -30,6 +30,7 @@ static int  livefailcnt = 0;
 static int  rssifailcnt = 0;
 static int  seccnt      = 0;
 static bool status      = false;
+static bool firstcheck  = false;
 int numbercnt;
 stringstream ss;
 string        s;
@@ -60,7 +61,7 @@ char buff[40];
         // read credit
         if(FONA1.fonarssi) {
             cout << "do first fona credit check after armed" << endl;
-            Logger::Write(Logger::INFO,"do first fona credit check after armed");
+            Logger::Write(Logger::INFO,"fona credit check after armed");
             FONA1.CreditCheck();
             status = true;
         }
@@ -91,17 +92,25 @@ char buff[40];
     // check AT+OK every minute
     if(livetimer >= LIVE_TIMER) {
         livetimer = 0;
-        if(!FONA1.LiveCheck()) {
+        if(!FONA1.LiveCheck(1000)) {
             Logger::Write(Logger::ERROR,"fona did not acknowledge the LiveCheck!");
 	        cout << "Fona liefert kein Acknowledge during LiveCheck!" << endl;
 	        // if there is for five minutes no live in it => reset an email
 	        if(++livefailcnt > (MAX_DEAD_LIVETIME/LIVE_TIMER)) {
-		        FONA1.Power_On();
+		        FONA1.begin();
 		        Logger::Write(Logger::ERROR,"Live-Check-Error: Fona musste reanimiert werden!");
 		        livefailcnt = 0;
             }
         }
-        else { livefailcnt = 0; cout << "fona is AT+OK!" << endl; }
+        else {
+            livefailcnt = 0;
+            if(!firstcheck) {
+               Logger::Write(Logger::INFO,"fona first credit check after power up");
+               FONA1.CreditCheck();
+               firstcheck = true;
+            }
+            cout << "fona is AT+OK!" << endl;
+        }
     }
     // check network quality every minute
     if(rssitimer >= RSSI_TIMER) {
@@ -110,7 +119,7 @@ char buff[40];
 	        // cout << "Fona hat keinen GSM-Empfang!" << endl;
 	        // if there is for trhree minutes no live in it => reset an email
 	        if(++rssifailcnt > (MAX_DEAD_RSSITIME/RSSI_TIMER)) {
-		        FONA1.Power_On();
+		        FONA1.begin();
                 Logger::Write(Logger::ERROR,"RSSI-Error: Fona hat keinen GSM-Empfang!");
 		        rssifailcnt = 0;
 	        }
@@ -125,7 +134,6 @@ void *GsmTask(void *value)
 
     // start fona on power up
    if(!FONA1.begin()) {
-// if(!FONA1.Power_On()) {
        Logger::Write(Logger::ERROR,"poweron-Error: fona did not boot");
        cout << "poweron-error: Fona startet nicht!" << endl;
        Logger::Write(Logger::ERROR,"alarmsystem not armed, no buzzer");

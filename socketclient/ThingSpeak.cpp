@@ -29,9 +29,12 @@ ThingSpeak::ThingSpeak()
 void ThingSpeak::pushout(uint16_t feld, float value)
 {
 ostringstream ts_head, ts_data;
+stringstream ss;
 
    cout << "Starting EBB Thing Speak Example" << endl;
 
+   ss << "field" << dec << feld << "=" << value << endl;
+   cout << ss.str() << endl;
 //   ts_data << "field" << dec << feld << "=" << fixed << setprecision(3) << value << endl;
    ts_data << "field" << dec << feld << "=" << value << endl;
    ts_head << "POST /update HTTP/1.1\n"

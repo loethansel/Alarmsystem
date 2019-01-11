@@ -386,7 +386,8 @@ public:
 	 * Returns the position in the frame data where the data begins
 	 */
 	virtual uint8_t getDataOffset() = 0;
-//!!	virtual ~RxDataResponse();
+	//virtual ~RxDataResponse();
+	//!!??
 };
 
 // getResponse to return the proper subclass:

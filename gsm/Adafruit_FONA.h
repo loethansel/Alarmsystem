@@ -82,7 +82,7 @@ public:
   bool IsRunning(void);
   bool begin(void);
   uint8_t type(void);
-  bool LiveCheck();
+  bool LiveCheck(uint16_t timeout);
   int  RxLevelCheck();
   int  CreditCheck();
   bool SendSms(const string& telnumber, const string& text);

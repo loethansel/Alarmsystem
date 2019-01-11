@@ -371,8 +371,6 @@ mutex mtx;
     out_buzzer.setValue(high);
     usleep(500000);
     out_buzzer.setValue(low);
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! only for testing
-    sendsms       = true;
 }
 
 
