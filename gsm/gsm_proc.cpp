@@ -24,6 +24,7 @@
 #include "../timer/EmaTimer.h"
 #include "../alarmsys.h"
 #include "../logger/logger.h"
+#include "../socketclient/ThingSpeak.h"
 // NAMESPACES
 using namespace std;
 using namespace BlackLib;
@@ -93,6 +94,8 @@ char buff[255];
        << "rssi: "   << tostr(FONA1.rxpegel_numeric) << "; "
        << "credit: " << FONA1.credit_aschar          << ";";
     Logger::Write(Logger::INFO,ss.str());
+    tspeak->pushout(3,FONA1.credit_numeric);
+    tspeak->pushout(2,static_cast<float>(FONA1.rxpegel_numeric));
     gsminfotimer.StartTimer();
 }
 
@@ -113,7 +116,9 @@ bool retval;
            rssifailcnt = 0;
        }
    }
-   else { }
+   else {
+
+   }
    rssitimer.StartTimer();
 }
 

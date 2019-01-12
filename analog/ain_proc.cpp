@@ -7,6 +7,7 @@
 // INCLUDES
 #include <fstream>
 #include <string>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <pthread.h>
@@ -76,6 +77,13 @@ int i;
             if(ctrlfile->ini.ALARM_LINE.lineactv[i] == "true") linetologger(i);
         }
     }
+    tspeak->pushout(4,valueFloat[0]);
+    sleep(2);
+    tspeak->pushout(5,valueFloat[1]);
+    sleep(2);
+    tspeak->pushout(6,valueFloat[2]);
+    sleep(2);
+    tspeak->pushout(7,valueFloat[3]);
     linelogtimer.StartTimer();
 }
 
@@ -100,7 +108,6 @@ bool         result;
             tmpfloatval[0] = 0.0;
             for(i=0;i<MIDCNT;i++) { tmpfloatval[0] += analog0.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
             valueFloat[0] = tmpfloatval[0] / MIDCNT;
-            // tspeak.pushout(1,valueFloat[0]);
             if((valueFloat[0] >= umax) || (valueFloat[0] <= umin)) result = false;
             else result = true;
         break;
@@ -108,7 +115,6 @@ bool         result;
             tmpfloatval[1] = 0.0;
             for(i=0;i<MIDCNT;i++) { tmpfloatval[1] += analog1.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
             valueFloat[1] = tmpfloatval[1] / MIDCNT;
-            // tspeak.pushout(2,valueFloat[1]);
             if((valueFloat[1] >= umax) || (valueFloat[1] <= umin)) result = false;
             else result = true;
         break;
@@ -116,7 +122,6 @@ bool         result;
             tmpfloatval[2] = 0.0;
             for(i=0;i<MIDCNT;i++) { tmpfloatval[2] += analog2.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
             valueFloat[2] = tmpfloatval[2] / MIDCNT;
-            // tspeak.pushout(3,valueFloat[2]);
             if((valueFloat[2] >= umax) || (valueFloat[2] <= umin)) result = false;
             else result = true;
         break;
@@ -124,7 +129,6 @@ bool         result;
             tmpfloatval[3] = 0.0;
             for(i=0;i<MIDCNT;i++) { tmpfloatval[3] += analog3.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
             valueFloat[3] = tmpfloatval[3] / MIDCNT;
-            // tspeak.pushout(4,valueFloat[3]);
             if((valueFloat[3] >= umax) || (valueFloat[3] <= umin)) result = false;
             else result = true;
         break;

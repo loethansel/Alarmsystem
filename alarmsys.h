@@ -27,7 +27,7 @@
 #include "analog/ain_proc.h"
 #include "files/ctrlfile.h"
 #include "files/iniparser.h"
-//#include "xbee/xbee.h"
+#include "socketclient/ThingSpeak.h"
 #include "email/email.h"
 
 using namespace std;
@@ -44,7 +44,8 @@ extern bool program_end;
 extern bool contactopen;
 
 // CLASSES EXTERN
-extern CtrlFile     *ctrlfile;
+extern CtrlFile   *ctrlfile;
+extern ThingSpeak *tspeak;
 // DEFINES
 #define ON   true
 #define OFF  false

@@ -9,6 +9,7 @@
 #include "timer/EmaTimer.h"
 #include "bme680/seeed_bme680.h"
 #include "xbee/xbeeproc.h"
+#include "socketclient/ThingSpeak.h"
 //---------------------------------------------------------------------------
 // USING NAMESPACE
 //---------------------------------------------------------------------------
@@ -65,6 +66,8 @@ SerialRelais serialrelais;
 Email        emailalarm;
 // FILES
 CtrlFile     *ctrlfile;
+ThingSpeak   *tspeak;
+
 
 //----------------------------------------------------------
 // BME680_HANDLER 1h
@@ -83,6 +86,7 @@ stringstream ss;
            << "gas resist= "   << bme.gas_resistance << " -;";
         s = ss.str();
         Logger::Write(Logger::INFO,s);
+        tspeak->pushout(8,bme.temperature);
     }
     bme680timer.StartTimer();
 }
@@ -260,6 +264,7 @@ string directionbuff[] = {"0","in","out","both"};
     Logger::Write(Logger::INFO,s);
     // FILES
     ctrlfile = new CtrlFile;
+    tspeak   = new ThingSpeak;
     // GPIO-OVERVIEW
     // GPIO_117 == P9.25  (OUT)
     // GPIO_115 == P9.27  (OUT)
@@ -313,6 +318,7 @@ bool Alert::init_tasks(void)
     Logger::Write(Logger::INFO, "joined MAIN-task => exit");
     // free the memory
     delete ctrlfile;    // File-IO Modul
+    delete tspeak;
     return true;
 }
 
@@ -371,6 +377,7 @@ mutex mtx;
     out_buzzer.setValue(high);
     usleep(500000);
     out_buzzer.setValue(low);
+    tspeak->pushout(1,100.0);
 }
 
 
@@ -402,6 +409,7 @@ mutex mtx;
     out_buzzer.setValue(high);
     sleep(1);
     out_buzzer.setValue(low);
+    tspeak->pushout(1,0.0);
 }
 
 // Interval Timer Handler
