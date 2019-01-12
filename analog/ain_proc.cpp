@@ -169,8 +169,9 @@ int  i;
 void *AinTask(void *value)
 {
     // cyclic log the voltage value of each line
-    linelogtimer.Create_Timer(0x00,INFOTIME);
+    linelogtimer.Create_Timer(0x00,stoi(ctrlfile->ini.ALARM.infotime)*60);
     linelogtimer.StartTimer();
+
     measuretimer.Create_Timer(MEASUREINTERVAL,0x00);
     measuretimer.StartTimer();
     while(1) {

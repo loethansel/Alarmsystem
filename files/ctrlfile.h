@@ -51,6 +51,7 @@ typedef struct {
     string autocnt;
     string alarmtime;
     string alarmtext;
+    string infotime;
 } s_alarm;
 typedef struct {
     string lineactv[MAXLINES];
@@ -70,6 +71,7 @@ typedef struct {
     string livedeadtime;
     string rssideadtime;
     string creditwarnlevel;
+    string simpin;
 } s_gsm;
 typedef struct {
     string number[MAX_NUM];

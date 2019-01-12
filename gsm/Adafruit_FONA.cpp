@@ -509,6 +509,16 @@ uint8_t Adafruit_FONA::unlockSIM(char *pin)
   return sendCheckReply(sendbuff, ok_reply);
 }
 
+bool Adafruit_FONA::isSIMunlocked(void)
+{
+char sendbuff[14] = "AT+CPIN=?";
+
+  mySerial->read();
+  while(mySerial->available()) { mySerial->read(); usleep(40000); }
+  return sendCheckReply(sendbuff, ok_reply);
+}
+
+
 uint8_t Adafruit_FONA::getSIMCCID(char *ccid)
 {
   getReply("AT+CCID");
@@ -1959,7 +1969,6 @@ bool Adafruit_FONA::sendCheckReply(char* send, FONAFlashStringPtr reply, uint16_
   }  else {
       return false;
   }
-//  return(prog_char_strcmp(replybuffer, reply) == 0);
 }
 
 

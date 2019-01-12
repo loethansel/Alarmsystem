@@ -17,7 +17,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-
 // INCLUDE PROGRAM
 #include "blacklib/BlackLib.h"
 #include "blacklib/BlackUART/BlackUART.h"
@@ -44,22 +43,17 @@ extern bool silentactive;
 extern bool program_end;
 extern bool contactopen;
 
-// FILES
+// CLASSES EXTERN
 extern CtrlFile     *ctrlfile;
-
+// DEFINES
 #define ON   true
 #define OFF  false
 #define SET  true
 #define CLR  false
-// Infotime in seconds
-#define INFOTIME  60
-//#define INFOTIME  3600
-// Alarmtime in minutes
-#define ALARMTIME 1
 #define LOGFILENAME "/home/debian/Alarmsystem/files/alarm.log"
 #define VERSION "V1.1"
 
-
+// MAIN CLASS
 class Alert
 {
 public:
@@ -75,6 +69,5 @@ public:
     virtual ~Alert();
 private:
 };
-
 
 #endif /* ALARMSYS_H_ */

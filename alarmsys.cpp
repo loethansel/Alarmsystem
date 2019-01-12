@@ -464,7 +464,7 @@ int     autoalarmtime;
    // bme680 sensor
    if(bme.init()) {
        // read digital an file inputs cyclic
-       bme680timer.Create_Timer(0,INFOTIME);
+       bme680timer.Create_Timer(0,stoi(ctrlfile->ini.ALARM.infotime)*60);
        bme680timer.StartTimer();
        Logger::Write(Logger::INFO,"bm680 init successful");
    }

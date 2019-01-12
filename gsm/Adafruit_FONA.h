@@ -96,6 +96,7 @@ public:
   bool getBattPercent(uint16_t *p);
   bool getBattVoltage(uint16_t *v);
   // SIM query
+  bool    isSIMunlocked(void);
   uint8_t unlockSIM(char *pin);
   uint8_t getSIMCCID(char *ccid);
   uint8_t getNetworkStatus(void);
