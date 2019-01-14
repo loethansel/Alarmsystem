@@ -86,9 +86,10 @@ stringstream ss;
            << "gas resist= "   << bme.gas_resistance << " -;";
         s = ss.str();
         Logger::Write(Logger::INFO,s);
-        tspeak->pushout(8,bme.temperature);
+        tspeak->setval(TEMPFIELD,bme.temperature);
     }
     bme680timer.StartTimer();
+    tspeak->pushall();
 }
 
 //----------------------------------------------------------
@@ -318,7 +319,7 @@ bool Alert::init_tasks(void)
     Logger::Write(Logger::INFO, "joined MAIN-task => exit");
     // free the memory
     delete ctrlfile;    // File-IO Modul
-    delete tspeak;
+    delete tspeak;      // webinterface
     return true;
 }
 
@@ -377,7 +378,7 @@ mutex mtx;
     out_buzzer.setValue(high);
     usleep(500000);
     out_buzzer.setValue(low);
-    tspeak->pushout(1,100.0);
+    tspeak->pushout(ARMEDFIELD,100.0);
 }
 
 
@@ -409,7 +410,7 @@ mutex mtx;
     out_buzzer.setValue(high);
     sleep(1);
     out_buzzer.setValue(low);
-    tspeak->pushout(1,0.0);
+    tspeak->pushout(ARMEDFIELD,0.0);
 }
 
 // Interval Timer Handler

@@ -20,31 +20,55 @@ using namespace std;
 
 SocketClient sc("api.thingspeak.com",80);
 
-// write: DR31KS856DPF1VJP
-// read:  GK5NGDORRBPSOTYE
+string writekey = "DR31KS856DPF1VJP";
+string readkey  = "GK5NGDORRBPSOTYE";
 
 ThingSpeak::ThingSpeak()
 {
-
+    for(int i=0;i<8;i++) fieldval[i] = 0.00;
 }
 
-void ThingSpeak::pushout(uint16_t feld, float value)
+void ThingSpeak::setval(uint8_t field,float value)
+{
+    if((field < 1) || (field > 8)) return;
+    fieldval[field-1] = value;
+}
+
+void ThingSpeak::pushall(void)
 {
 ostringstream ts_head, ts_data;
-stringstream ss;
 int len;
 bool retval;
 
-   cout << "starting thingspeak pushout" << endl;
-   ss << "thingspeak pushout field" << dec << feld << "=" << value << endl;
-   cout << ss.str() << endl;
-   ts_data << "field" << dec << feld << "=" << fixed << setprecision(3) << value << endl;
-   ts_data << "field" << dec << feld << "=" << value << endl;
+   cout << "starting thingspeak pushout all" << endl;
+   ts_data << "field1=" << fixed << setprecision(2) << fieldval[0] << "&"
+           << "field2=" << fixed << setprecision(2) << fieldval[1] << "&"
+           << "field3=" << fixed << setprecision(2) << fieldval[2] << "&"
+           << "field4=" << fixed << setprecision(2) << fieldval[3] << "&"
+           << "field5=" << fixed << setprecision(2) << fieldval[4] << "&"
+           << "field6=" << fixed << setprecision(2) << fieldval[5] << "&"
+           << "field7=" << fixed << setprecision(2) << fieldval[6] << "&"
+           << "field8=" << fixed << setprecision(2) << fieldval[7] << endl;
+#ifdef TSTEST
+   stringstream ss;
+   string s;
+   char harr[255];
+   ss      << "field1=" << fixed << setprecision(2) << fieldval[0] << "&"
+           << "field2=" << fixed << setprecision(2) << fieldval[1] << "&"
+           << "field3=" << fixed << setprecision(2) << fieldval[2] << "&"
+           << "field4=" << fixed << setprecision(2) << fieldval[3] << "&"
+           << "field5=" << fixed << setprecision(2) << fieldval[4] << "&"
+           << "field6=" << fixed << setprecision(2) << fieldval[5] << "&"
+           << "field7=" << fixed << setprecision(2) << fieldval[6] << "&"
+           << "field8=" << fixed << setprecision(2) << fieldval[7] << endl;
+   s = ss.str();
+   s.copy(harr,s.length(),0);
+#endif
    len = string(ts_data.str()).length();
    ts_head << "POST /update HTTP/1.1\n"
            << "Host:api.thingspeak.com\n"
            << "Connection: close\n"
-           << "X-THINGSPEAKAPIKEY:DR31KS856DPF1VJP\n"
+           << "X-THINGSPEAKAPIKEY:"<< writekey << "\n"
            << "Content-Type: application/x-www-form-urlencoded\n"
            << "Content-Length:" << len << "\n\n";
    sc.connectToServer();
@@ -53,6 +77,40 @@ bool retval;
    string rec = sc.receive(1024);
    retval = rec.find("OK");
    if(retval != -1) cout << "thingspeak send data successful" << endl;
+   sc.disconnectFromServer();
+}
+
+
+void ThingSpeak::pushout(uint16_t feld, float value)
+{
+ostringstream ts_head, ts_data;
+stringstream ss;
+string s;
+char harr[40];
+int len;
+bool retval;
+
+   cout << "starting thingspeak pushout" << endl;
+   cout << "thingspeak pushout field" << dec << feld << "=" << fixed << setprecision(2) << value << endl;
+   setval(feld,value);
+   ts_data << "field" << dec << feld << "=" << fixed << setprecision(2) << value << endl;
+   ss << "field" << dec << feld << "=" << fixed << setprecision(2) << value << endl;
+   s = ss.str();
+   s.copy(harr,s.length(),0);
+   len = string(ts_data.str()).length();
+   ts_head << "POST /update HTTP/1.1\n"
+           << "Host:api.thingspeak.com\n"
+           << "Connection: close\n"
+           << "X-THINGSPEAKAPIKEY:"<< writekey << "\n"
+           << "Content-Type: application/x-www-form-urlencoded\n"
+           << "Content-Length:" << len << "\n\n";
+   sc.connectToServer();
+   sc.send(string(ts_head.str()));
+   sc.send(string(ts_data.str()));
+   string rec = sc.receive(1024);
+   retval = rec.find("OK");
+   if(retval != -1) cout << "thingspeak send data successful" << endl;
+   sc.disconnectFromServer();
 }
 
 ThingSpeak::~ThingSpeak()

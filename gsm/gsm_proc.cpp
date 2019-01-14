@@ -46,7 +46,7 @@ EmaTimer  gsmtimer(gsm_handler);
 EmaTimer  gsminfotimer(info_handler);
 
 
-void GetCompareCredit(void)
+void GetCompCredit(void)
 {
 stringstream ss;
 string s;
@@ -60,6 +60,7 @@ bool retval;
         Logger::Write(Logger::ERROR,"fona get and compare credit check failed");
         return;
     }
+    tspeak->setval(CREDITFIELD,FONA1.credit_numeric);
     ss.str(""); ss.clear();
     ss << FONA1.credit_aschar;
     // get length
@@ -94,8 +95,6 @@ char buff[255];
        << "rssi: "   << tostr(FONA1.rxpegel_numeric) << "; "
        << "credit: " << FONA1.credit_aschar          << ";";
     Logger::Write(Logger::INFO,ss.str());
-    tspeak->pushout(3,FONA1.credit_numeric);
-    tspeak->pushout(2,static_cast<float>(FONA1.rxpegel_numeric));
     gsminfotimer.StartTimer();
 }
 
@@ -117,7 +116,7 @@ bool retval;
        }
    }
    else {
-
+       tspeak->setval(RSSIFIELD,static_cast<float>(FONA1.rxpegel_numeric));
    }
    rssitimer.StartTimer();
 }
@@ -145,7 +144,7 @@ static bool firstcheck = false;
        livefailcnt = 0;
        if(!firstcheck) {
           Logger::Write(Logger::INFO,"fona first credit check after power up");
-          GetCompareCredit();
+          GetCompCredit();
           gsminfotimer.StartTimer();
           firstcheck = true;
        }
@@ -170,7 +169,7 @@ int i;
         if(FONA1.fonarssi) {
             cout << "do first fona credit check after armed" << endl;
             Logger::Write(Logger::INFO,"fona credit check after armed");
-            FONA1.CreditCheck();
+            GetCompCredit();
             status = true;
         }
     }
@@ -186,7 +185,7 @@ int i;
                 ss << ctrlfile->ini.ALARM.alarmtext;
                 s = ss.str();
                 if(FONA1.SendSms(ctrlfile->ini.TEL_NUM.number[i],s)) {
-                    FONA1.CreditCheck();
+                    GetCompCredit();
                     FONA1.deleteSMS_all();
                 }
                 else {
