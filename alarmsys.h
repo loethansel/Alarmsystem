@@ -52,7 +52,7 @@ extern ThingSpeak *tspeak;
 #define SET  true
 #define CLR  false
 #define LOGFILENAME "/home/debian/Alarmsystem/files/alarm.log"
-#define VERSION "V1.1"
+#define VERSION "V1.2"
 
 // MAIN CLASS
 class Alert

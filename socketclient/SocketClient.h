@@ -31,8 +31,8 @@
 #include <netdb.h>
 #include <string>
 
-class SocketClient {
-
+class SocketClient
+{
 private:
     int 	    socketfd;
     struct 	    sockaddr_in   serverAddress;
@@ -43,6 +43,7 @@ private:
 
 public:
 	SocketClient(std::string serverName, int portNumber);
+	void setServer(std::string serverName, int portNumber);
 	virtual int connectToServer();
 	virtual int disconnectFromServer();
 	virtual int send(std::string message);

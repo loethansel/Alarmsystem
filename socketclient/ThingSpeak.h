@@ -17,6 +17,8 @@
 #define LINE4FIELD  7
 #define TEMPFIELD   8
 
+using namespace std;
+
 class ThingSpeak
 {
 public:
@@ -27,6 +29,8 @@ public:
     virtual ~ThingSpeak();
 private:
     float fieldval[8];
+    string writekey;
+    string readkey;
 };
 
 #endif /* SOCKETCLIENT_THINGSPEAK_H_ */

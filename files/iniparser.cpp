@@ -75,11 +75,16 @@ int INIParser::ReadINI(string path)
 //get value by root and key
 string INIParser::GetValue(string root, string key)
 {
-    map<string, SubNode>::iterator itr = map_ini.find(root);
-    map<string, string>::iterator sub_itr = itr->second.sub_node.find(key);
-    if(!(sub_itr->second).empty())
-        return sub_itr->second;
-    return "";
+uint64_t retval;
+
+    map<string, SubNode>::iterator itr     = map_ini.find(root);
+    map<string, string>::iterator  sub_itr = itr->second.sub_node.find(key);
+    retval = (sub_itr->second).size();
+    if((retval > 255) || (retval < 0)) {
+        cout << "error getting value ROOT=" << root << "  " << "VALUE=" << key << endl;
+        return "";
+    }
+    return sub_itr->second;
 }
 
 //write ini file

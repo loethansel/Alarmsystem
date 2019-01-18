@@ -14,18 +14,33 @@
 #include <signal.h>
 #include "ThingSpeak.h"
 #include "SocketClient.h"
+#include "../alarmsys.h"
+#include "../files/ctrlfile.h"
+#include "../logger/logger.h"
 
 
 using namespace std;
+using namespace logger;
 
 SocketClient sc("api.thingspeak.com",80);
 
-string writekey = "DR31KS856DPF1VJP";
-string readkey  = "GK5NGDORRBPSOTYE";
-
 ThingSpeak::ThingSpeak()
 {
+stringstream  ss;
+int port;
+
     for(int i=0;i<8;i++) fieldval[i] = 0.00;
+    this->writekey = ctrlfile->ini.TSPEAK.writekey;
+    this->readkey  = ctrlfile->ini.TSPEAK.readkey;
+    ss << "tspeak: host=" << ctrlfile->ini.TSPEAK.hostname
+       << "; port=" << ctrlfile->ini.TSPEAK.port
+       << "; wkey=" << this->writekey
+       << "; rkey=" << this->readkey;
+    ss.str(""); ss.clear();
+    Logger::Write(Logger::INFO,ss.str());
+    try { port = stoi(ctrlfile->ini.TSPEAK.port); }
+    catch(const exception& e) { cout << "catched exception thingspeak: " << e.what() << endl; }
+    sc.setServer(ctrlfile->ini.TSPEAK.hostname,port);
 }
 
 void ThingSpeak::setval(uint8_t field,float value)
@@ -40,7 +55,6 @@ ostringstream ts_head, ts_data;
 int len;
 bool retval;
 
-   cout << "starting thingspeak pushout all" << endl;
    ts_data << "field1=" << fixed << setprecision(2) << fieldval[0] << "&"
            << "field2=" << fixed << setprecision(2) << fieldval[1] << "&"
            << "field3=" << fixed << setprecision(2) << fieldval[2] << "&"
@@ -68,7 +82,7 @@ bool retval;
    ts_head << "POST /update HTTP/1.1\n"
            << "Host:api.thingspeak.com\n"
            << "Connection: close\n"
-           << "X-THINGSPEAKAPIKEY:"<< writekey << "\n"
+           << "X-THINGSPEAKAPIKEY:"<< this->writekey << "\n"
            << "Content-Type: application/x-www-form-urlencoded\n"
            << "Content-Length:" << len << "\n\n";
    sc.connectToServer();
@@ -76,7 +90,8 @@ bool retval;
    sc.send(string(ts_data.str()));
    string rec = sc.receive(1024);
    retval = rec.find("OK");
-   if(retval != -1) cout << "thingspeak send data successful" << endl;
+   if(retval != -1) Logger::Write(Logger::INFO,"thingspeak send data successful");
+   else Logger::Write(Logger::ERROR,"thingspeak send data fail");
    sc.disconnectFromServer();
 }
 
@@ -90,18 +105,13 @@ char harr[40];
 int len;
 bool retval;
 
-   cout << "starting thingspeak pushout" << endl;
-   cout << "thingspeak pushout field" << dec << feld << "=" << fixed << setprecision(2) << value << endl;
    setval(feld,value);
    ts_data << "field" << dec << feld << "=" << fixed << setprecision(2) << value << endl;
-   ss << "field" << dec << feld << "=" << fixed << setprecision(2) << value << endl;
-   s = ss.str();
-   s.copy(harr,s.length(),0);
    len = string(ts_data.str()).length();
    ts_head << "POST /update HTTP/1.1\n"
            << "Host:api.thingspeak.com\n"
            << "Connection: close\n"
-           << "X-THINGSPEAKAPIKEY:"<< writekey << "\n"
+           << "X-THINGSPEAKAPIKEY:"<< this->writekey << "\n"
            << "Content-Type: application/x-www-form-urlencoded\n"
            << "Content-Length:" << len << "\n\n";
    sc.connectToServer();
@@ -109,7 +119,8 @@ bool retval;
    sc.send(string(ts_data.str()));
    string rec = sc.receive(1024);
    retval = rec.find("OK");
-   if(retval != -1) cout << "thingspeak send data successful" << endl;
+   if(retval != -1) Logger::Write(Logger::INFO,"thingspeak send data successful");
+   else Logger::Write(Logger::ERROR,"thingspeak send data fail");
    sc.disconnectFromServer();
 }
 

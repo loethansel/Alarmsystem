@@ -195,6 +195,8 @@ bool Alert::file_work(void)
 {
 bool retval;
 
+    // FILES
+    ctrlfile = new CtrlFile;
     // INI-FILE
     if(!ctrlfile->CheckFileExists(INIFILENAME)) {
         // Write Inifile first
@@ -263,8 +265,7 @@ string directionbuff[] = {"0","in","out","both"};
        << "value: "     << out_led.getValue();
     s = ss.str();
     Logger::Write(Logger::INFO,s);
-    // FILES
-    ctrlfile = new CtrlFile;
+    // THINGSPEAK
     tspeak   = new ThingSpeak;
     // GPIO-OVERVIEW
     // GPIO_117 == P9.25  (OUT)
@@ -355,14 +356,12 @@ mutex mtx;
 
     // only set to armed if not alarm line is active or armed yet
     if(armed || contactopen) return;
-    cout << "scharf" << endl;
     Logger::Write(Logger::INFO, "alarmsystem ARMED!");
     mtx.lock();
     ctrlfile->WriteSystemArmed(true);
     ctrlfile->Clear();
     retval = ctrlfile->ReadIniFile();
     mtx.unlock();
-    XBeeSwitch(XBEEONOFF,CLR);
     if(retval) { Logger::Write(Logger::INFO,  "reading INI file during getting armed"); }
     else       { Logger::Write(Logger::ERROR, "could not read INI file ==> exit"); program_end = true; }
     armed          = true;
@@ -378,6 +377,7 @@ mutex mtx;
     out_buzzer.setValue(high);
     usleep(500000);
     out_buzzer.setValue(low);
+    XBeeSwitch(XBEEONOFF,CLR);
     tspeak->pushout(ARMEDFIELD,100.0);
 }
 
@@ -391,7 +391,6 @@ mutex mtx;
 
     Logger::Write(Logger::INFO, "alarmsystem DISARMED!");
     buzzertimer.StopTimer();
-    cout << "unscharf" << endl;
     armed          = false;
     alarmactive    = false;
     buzzeralarm    = false;
@@ -403,13 +402,13 @@ mutex mtx;
     switch_relais(OFF);
     ctrlfile->WriteSystemArmed(false);
     mtx.unlock();
-    XBeeSwitch(XBEETIME,CLR);
-    XBeeSwitch(XBEEALARM,CLR);
-    XBeeSwitch(XBEEONOFF,SET);
     out_led.setValue(low);
     out_buzzer.setValue(high);
     sleep(1);
     out_buzzer.setValue(low);
+    XBeeSwitch(XBEETIME,CLR);
+    XBeeSwitch(XBEEALARM,CLR);
+    XBeeSwitch(XBEEONOFF,SET);
     tspeak->pushout(ARMEDFIELD,0.0);
 }
 
@@ -423,7 +422,6 @@ void Alert::main_handler(void)
     //-----------------------------------------------------------
     if(alarmactive && !alarm_blocked && armed) {
         Logger::Write(Logger::INFO,"set alarm-actors on");
-        cout << "set alarm actors" << endl;
         buzzertimer.StartTimer();
         switch_relais(ON);
         XBeeSwitch(XBEEALARM,SET);
@@ -531,13 +529,12 @@ string        s;
     action.sa_flags = SA_NODEFER;
     sigaction (SIGTERM, &action, NULL);
     sigaction (SIGINT,  &action, NULL);
-
+    // FILE READING WRITING
+    if(!ema.file_work()) { cout << "error reading inifile" << endl; return 0; }
     // IO'S AND CLASSES
     ema.init_system();
-    // FILE READING WRITING
-    if(!ema.file_work()) return 0;
     // INITIALISE TASKS
-    if(ema.init_tasks()) return 0;
+    if(ema.init_tasks()) { cout << "error init tasks" << endl; return 0; }
     return 0;
 }
 

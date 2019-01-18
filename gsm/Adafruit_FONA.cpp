@@ -396,8 +396,8 @@ char writeArr[255];
                ss.str("");
                ss.clear();
                ss << rbuff;
-               credit_numeric = stof(ss.str());
-               // cout << "credit: "  << ss.str() << endl;
+               try { credit_numeric = stof(ss.str()); }
+               catch(const exception& e) { cout << "catched exception creditcheck: " << e.what() << endl; }
                return true;
             }
         }

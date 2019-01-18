@@ -73,10 +73,13 @@ bool retval;
         if(!((hstr2[i] >= '0' && hstr2[i] <= '9') || (hstr2[i] == '.'))) hstr2[i] = '0';
     }
     // compare credit level
-    if(stof(hstr1) < stof(hstr2)) {
-        Logger::Write(Logger::INFO,"fona credit is low level, please charge your card");
-        // TODO: send service email
+    try {
+       if(stof(hstr1) < stof(hstr2)) {
+           Logger::Write(Logger::INFO,"fona credit is low level, please charge your card");
+           // TODO: send service email
+       }
     }
+    catch(const exception& e) { cout << "catched exception creditcomp: " << e.what() << endl; }
 }
 
 // Interval Timer Handler (usually every hour)
@@ -178,7 +181,8 @@ int i;
     if(sendsms) {
         // if live and rri send the email if not wait .....
         if(FONA1.fonarssi && FONA1.fonalive) {
-            numbercnt = stoi(ctrlfile->ini.TEL_NUM.numbercnt);
+            try { numbercnt = stoi(ctrlfile->ini.TEL_NUM.numbercnt); }
+            catch(const exception& e) { cout << "catched exception gsmhandler: " << e.what() << endl; }
             for(i=0;i<numbercnt;i++) {
                 ss.str("");
                 ss.clear();

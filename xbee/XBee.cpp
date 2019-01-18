@@ -910,7 +910,7 @@ unsigned long long millisnow;
 
 	if (timeout < 0) return false;
 	gettimeofday(&tmnow, NULL);
-	millisnow = millisstart =  (tmnow.tv_sec * 1000) + (tmnow.tv_usec / 1000);
+	millisnow = millisstart = (tmnow.tv_sec * 1000) + (tmnow.tv_usec / 1000);
 
 	while(int(millisnow - millisstart) < timeout) {
         // get milliseconds for timeout

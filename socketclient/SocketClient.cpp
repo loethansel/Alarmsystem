@@ -29,12 +29,19 @@
 using namespace std;
 
 
-SocketClient::SocketClient(std::string serverName, int portNumber) {
+SocketClient::SocketClient(std::string serverName, int portNumber)
+{
 	this->socketfd = -1;
 	this->server = NULL;
 	this->serverName = serverName;
 	this->portNumber = portNumber;
 	this->isConnected = false;
+}
+
+void SocketClient::setServer(std::string serverName, int portNumber)
+{
+    this->serverName = serverName;
+    this->portNumber = portNumber;
 }
 
 int SocketClient::connectToServer(){

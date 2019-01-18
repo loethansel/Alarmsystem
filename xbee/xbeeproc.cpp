@@ -63,7 +63,7 @@ bool readRtAtRp(void)
     if(!xbee.readPacket(500)) goto noresponse;
     if (xbee.getResponse().getApiId() == REMOTE_AT_COMMAND_RESPONSE) {
       xbee.getResponse().getRemoteAtCommandResponse(racr_rp);
-      if (racr_rp.isOk())
+      if(racr_rp.isOk())
       {
           return true;
       }
@@ -117,11 +117,15 @@ bool readTxeRp(void)
     if(xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE) {
        xbee.getResponse().getZBTxStatusResponse(zbtx_rp);
        if(zbtx_rp.getDeliveryStatus() == SUCCESS) {
+          return true;
+//!!! checken
+/*
           if(!xbee.readPacket(500)) goto noresponse;
           if(xbee.getResponse().getApiId() == ZB_EXPLICIT_RX_RESPONSE)
              {
                 return true;
              }
+*/
        }
        else {
            Logger::Write(Logger::ERROR,"xbee no explicit delivery success");

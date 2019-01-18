@@ -86,6 +86,14 @@ typedef struct {
     string servicemail;
 } s_mail;
 typedef struct {
+    string hostname;
+    string port;
+    string channelid;
+    string writekey;
+    string readkey;
+    string interval;
+} s_tspeak;
+typedef struct {
     string name;
     string addr64;
     string addr16;
@@ -113,6 +121,7 @@ typedef struct {
    s_num     TEL_NUM;
    s_out     OUT_ACTIVE;
    s_mail    EMAIL;
+   s_tspeak  TSPEAK;
    s_timesw  TIMESW;
    s_xbee    XBEE[MAX_XBEE];
 } s_initval;
