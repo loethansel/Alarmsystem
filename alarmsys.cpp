@@ -381,7 +381,6 @@ mutex mtx;
     tspeak->pushout(ARMEDFIELD,100.0);
 }
 
-
 //-----------------------------------------------------------
 // SETUNARMED
 //----------------------------------------------------------
@@ -457,12 +456,14 @@ int     autoalarmtime;
    if(version == 0) Logger::Write(Logger::ERROR, "serial serialrelais did not respond");
    // switch off serial serialrelais
    ema.switch_relais(OFF);
-   // setuup for disarm after alarm
+   try {
+   // setup for disarm after alarm
    alarmtime = stoi(ctrlfile->ini.ALARM.alarmtime);
    disarmtimer.Create_Timer(0x00,(alarmtime*60));
    // setup for autoarm after alarm ends
    autoalarmtime = stoi(ctrlfile->ini.ALARM.autotime);
    autoalarmtimer.Create_Timer(0x00,(autoalarmtime*60));
+   } catch(const exception& e) { cout << "catched exception maintask timer: " << e.what() << endl; }
    // set alarm buzzer cyclic
    buzzertimer.Create_Timer(100,0);
    // read digital an file inputs cyclic
@@ -471,8 +472,10 @@ int     autoalarmtime;
    // bme680 sensor
    if(bme.init()) {
        // read digital an file inputs cyclic
+       try {
        bme680timer.Create_Timer(0,stoi(ctrlfile->ini.ALARM.infotime)*60);
        bme680timer.StartTimer();
+       } catch(const exception& e) { cout << "catched exception maintask infotime: " << e.what() << endl; }
        Logger::Write(Logger::INFO,"bm680 init successful");
    }
    else Logger::Write(Logger::ERROR,"bm680 init failed");

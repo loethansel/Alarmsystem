@@ -704,6 +704,11 @@ RxDataResponse::RxDataResponse() : XBeeResponse() {
 
 }
 
+RxDataResponse::~RxDataResponse()
+{
+
+}
+
 uint8_t RxDataResponse::getData(int index) {
 	return getFrameData()[getDataOffset() + index];
 }
@@ -927,8 +932,8 @@ unsigned long long millisnow;
 }
 
 void XBee::readPacket() {
-//char buff[255];
-unsigned int  errcnt = 0;
+char buff[255];
+unsigned int errcnt = 0;
 
 	// reset previous response
 	if (_response.isAvailable() || _response.isError()) {
@@ -938,11 +943,14 @@ unsigned int  errcnt = 0;
     while(available()) {
         // read one character 9600 baud
         b = read();
+        // cout << hex << uppercase << setfill('0') << setw(2) <<static_cast<int>(b);
         // read again if not successful
         if(serialxbee.fail(BlackLib::BlackUART::readErr)) {
-            if(++errcnt > MAX_FRAME_DATA_SIZE) return;
+            if(++errcnt > MAX_FRAME_DATA_SIZE) {
+                return;
+            }
             else {
-                usleep(2000);
+                usleep(1200);
                 continue;
             }
         }
@@ -954,21 +962,25 @@ unsigned int  errcnt = 0;
         switch(_pos) {
 			case 0:
 		        if (b == START_BYTE) {
+                    buff[0] = b;
 		        	_pos++;
 		        }
 		        break;
 			case 1:
 				// length msb
 				_response.setMsbLength(b);
+                buff[1] = b;
 				_pos++;
 				break;
 			case 2:
 				// length lsb
 				_response.setLsbLength(b);
+                buff[2] = b;
 				_pos++;
 				break;
 			case 3:
 				_response.setApiId(b);
+                buff[3] = b;
 				_pos++;
 				break;
 			default:
@@ -986,10 +998,19 @@ unsigned int  errcnt = 0;
 						_response.setChecksum(b);
 						_response.setAvailable(true);
 						_response.setErrorCode(NO_ERROR);
+                        cout << "successful ";
+
 					} else {
 						// checksum failed
 						_response.setErrorCode(CHECKSUM_FAILURE);
+                        cout << "error ";
 					}
+                    cout << "xbeerec: ";
+                    for(int i=0;i<_pos;i++) {
+                        cout << hex << uppercase << setfill('0') << setw(2) << static_cast<int>(buff[i]);
+                    }
+                    cout << hex << uppercase << setfill('0') << setw(2) <<static_cast<int>(b);
+                    cout << endl;
 					// minus 4 because we start after start,msb,lsb,api and up to but not including checksum
 					// e.g. if frame was one byte, _pos=4 would be the byte, pos=5 is the checksum, where end stop reading
 					_response.setFrameLength(_pos - 4);
@@ -999,6 +1020,7 @@ unsigned int  errcnt = 0;
 				} else {
 					// add to packet array, starting with the fourth byte of the apiFrame
 					_response.getFrameData()[_pos - 4] = b;
+					buff[_pos] = b;
 					_pos++;
 				}
         }
@@ -1524,35 +1546,39 @@ uint8_t RemoteAtCommandRequest::getFrameDataLength() {
 
 void XBee::send(XBeeRequest &request)
 {
-mutex mtx;
-
-    mtx.lock();
 	// the new new deal
     // test: 7E 00 19 11 01 7C B0 3E AA 00 B2 39 EA FF FE E8 03 00 06 01 04 00 00 01 00 01 00 10 FF
+    cout << "transmision toxbee: ";
+    cout << hex << uppercase << setfill('0') << setw(2) << int(START_BYTE);
 	sendByte(START_BYTE, false);
 	// send length
 	uint8_t msbLen = ((request.getFrameDataLength() + 2) >> 8) & 0xff;
 	uint8_t lsbLen = (request.getFrameDataLength() + 2) & 0xff;
 	sendByte(msbLen, false);
+    cout << hex << uppercase << setfill('0') << setw(2) << int(msbLen);
 	sendByte(lsbLen, false);
+    cout << hex << uppercase << setfill('0') << setw(2) << int(lsbLen);
 	// api id
 	sendByte(request.getApiId(), false);
+    cout << hex << uppercase << setfill('0') << setw(2) << int(request.getApiId());
 	sendByte(request.getFrameId(), false);
+    cout << hex << uppercase << setfill('0') << setw(2) << int(request.getFrameId());
 	// calculate Checksum an send frame
 	uint8_t checksum = 0;
 	// compute checksum, start at api id
 	checksum+= request.getApiId();
 	checksum+= request.getFrameId();
 	for (int i = 0; i < request.getFrameDataLength(); i++) {
-		sendByte(request.getFrameData(i), false);
+	    uint8_t hint = request.getFrameData(i);
+		sendByte(hint, false);
+		cout << hex << uppercase << setfill('0') << setw(2) << int(hint);
 		checksum+= request.getFrameData(i);
 	}
 	// perform 2s complement
 	checksum = 0xff - checksum;
 	// send checksum
 	sendByte(checksum, false);
-	usleep(500);
-    mtx.unlock();
+	cout << hex << uppercase << setfill('0') << setw(2) << int(checksum) << endl;
 }
 
 void XBee::sendByte(uint8_t b, bool escape) {

@@ -59,20 +59,25 @@ bool xbee_ok      = false;
 //----------------------------------------------------------
 bool readRtAtRp(void)
 {
-    // read tx_status_response
-    if(!xbee.readPacket(500)) goto noresponse;
-    if (xbee.getResponse().getApiId() == REMOTE_AT_COMMAND_RESPONSE) {
-      xbee.getResponse().getRemoteAtCommandResponse(racr_rp);
-      if(racr_rp.isOk())
+bool ende = false;
+
+    do {
+       // read acknowlege
+       if(!xbee.readPacket(500)) goto noresponse;
+       // check acknowledge 0x97, dump all other
+       if(xbee.getResponse().getApiId() == REMOTE_AT_COMMAND_RESPONSE) ende = true;
+    } while(!ende);
+    // check response is transmission successful
+    xbee.getResponse().getRemoteAtCommandResponse(racr_rp);
+    if(racr_rp.isOk())
       {
           return true;
       }
-      else {
-          Logger::Write(Logger::ERROR,"xbee no remote at delivery success");
-          cout << "xbee no delivery success" << endl;
-          return false;
-      }
-    }
+    else {
+       Logger::Write(Logger::ERROR,"xbee no remote at delivery success");
+       cout << "xbee no delivery success" << endl;
+       return false;
+   }
 noresponse:
    Logger::Write(Logger::ERROR,"xbee no response");
    cout << "xbee no response" << endl;
@@ -117,15 +122,11 @@ bool readTxeRp(void)
     if(xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE) {
        xbee.getResponse().getZBTxStatusResponse(zbtx_rp);
        if(zbtx_rp.getDeliveryStatus() == SUCCESS) {
-          return true;
-//!!! checken
-/*
           if(!xbee.readPacket(500)) goto noresponse;
           if(xbee.getResponse().getApiId() == ZB_EXPLICIT_RX_RESPONSE)
              {
                 return true;
              }
-*/
        }
        else {
            Logger::Write(Logger::ERROR,"xbee no explicit delivery success");
@@ -191,6 +192,8 @@ uint8_t      i,j;
 string       s;
 stringstream ss;
 
+    // cleaning from waste
+    do { if(!xbee.readPacket(500)) break; } while(1);
     // preparing frame data
     frametype = stoul(frame->framet,nullptr,16);
     addr_64   = stoull(frame->addr64,nullptr,16);
@@ -245,6 +248,7 @@ stringstream ss;
          xbee.flush(BOTH);
          Logger::Write(Logger::INFO,s);
          xbee.send(zbetx);
+         sleep(1);
          XbeeCkeckResponse(frametype);
        break;
        // Remote AT Command Request
@@ -260,6 +264,7 @@ stringstream ss;
          xbee.flush(BOTH);
          Logger::Write(Logger::INFO,s);
          xbee.send(racr);
+         sleep(1);
          XbeeCkeckResponse(frametype);
          racr.clearCommandValue();
        break;

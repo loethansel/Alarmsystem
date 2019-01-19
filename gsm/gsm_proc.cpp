@@ -78,8 +78,7 @@ bool retval;
            Logger::Write(Logger::INFO,"fona credit is low level, please charge your card");
            // TODO: send service email
        }
-    }
-    catch(const exception& e) { cout << "catched exception creditcomp: " << e.what() << endl; }
+    } catch(const exception& e) { cout << "catched exception creditcomp: " << e.what() << endl; }
 }
 
 // Interval Timer Handler (usually every hour)
@@ -238,6 +237,7 @@ stringstream ss;
           FONA1.getIMEI(&imeibuff[0]);
           ss << "fona imei: " << imeibuff;
           Logger::Write(Logger::INFO,ss.str());
+          try {
           rssitimer.Create_Timer(0,stoi(ctrlfile->ini.GSM.rssitimer)*60);
           rssitimer.StartTimer();
           livetimer.Create_Timer(0,stoi(ctrlfile->ini.GSM.livetimer)*60);
@@ -245,6 +245,7 @@ stringstream ss;
           gsmtimer.Create_Timer(0,GSMINTERVAL);
           gsmtimer.StartTimer();
           gsminfotimer.Create_Timer(0,stoi(ctrlfile->ini.ALARM.infotime)*60);
+          } catch(const exception& e) { cout << "catched exception gsmproc: " << e.what() << endl; }
           Logger::Write(Logger::INFO,"fona timer init");
        }
    }

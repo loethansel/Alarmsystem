@@ -92,8 +92,10 @@ bool         result;
     // return true for lines that should not be checked
     if(ctrlfile->ini.ALARM_LINE.lineactv[line] == "false") return true;
     // read min/max thresholds
+    try {
     umin = stof(ctrlfile->ini.ALARM_LINE.lineumin[line]);
     umax = stof(ctrlfile->ini.ALARM_LINE.lineumax[line]);
+    } catch(const exception& e) { cout << "catched exception analog umin/umax: " << e.what() << endl; }
     // read analog values
     switch(line) {
         case 0:
@@ -169,7 +171,9 @@ int  i;
 void *AinTask(void *value)
 {
     // cyclic log the voltage value of each line
+    try {
     linelogtimer.Create_Timer(0x00,stoi(ctrlfile->ini.ALARM.infotime)*60);
+    } catch(const exception& e) { cout << "catched exception analog infotime: " << e.what() << endl; }
     linelogtimer.StartTimer();
 
     measuretimer.Create_Timer(MEASUREINTERVAL,0x00);

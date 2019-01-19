@@ -101,8 +101,10 @@
 #define ZB_TX_STATUS_RESPONSE 0x8b
 #define ZB_IO_SAMPLE_RESPONSE 0x92
 #define ZB_IO_NODE_IDENTIFIER_RESPONSE 0x95
+#define ZB_ROUTE_RECORD_INDICATOR 0xA1
 #define AT_COMMAND_RESPONSE 0x88
 #define REMOTE_AT_COMMAND_RESPONSE 0x97
+
 
 
 /**
@@ -386,8 +388,7 @@ public:
 	 * Returns the position in the frame data where the data begins
 	 */
 	virtual uint8_t getDataOffset() = 0;
-	//virtual ~RxDataResponse();
-	//!!??
+	virtual ~RxDataResponse();
 };
 
 // getResponse to return the proper subclass:
