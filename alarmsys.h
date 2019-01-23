@@ -46,6 +46,7 @@ extern bool contactopen;
 // CLASSES EXTERN
 extern CtrlFile   *ctrlfile;
 extern ThingSpeak *tspeak;
+extern Email      *emailalarm;
 // DEFINES
 #define ON   true
 #define OFF  false

@@ -63,7 +63,7 @@ BlackLib::BlackGPIO  in_disarm(BlackLib::GPIO_51 ,BlackLib::input); // P9.16
 // I2C-serialrelais
 SerialRelais serialrelais;
 // EMAIL
-Email        emailalarm;
+Email        *emailalarm;
 // FILES
 CtrlFile     *ctrlfile;
 ThingSpeak   *tspeak;
@@ -266,7 +266,9 @@ string directionbuff[] = {"0","in","out","both"};
     s = ss.str();
     Logger::Write(Logger::INFO,s);
     // THINGSPEAK
-    tspeak   = new ThingSpeak;
+    tspeak     = new ThingSpeak;
+    emailalarm = new Email;
+    emailalarm->send(SERVICEMAIL,"program started!");
     // GPIO-OVERVIEW
     // GPIO_117 == P9.25  (OUT)
     // GPIO_115 == P9.27  (OUT)
@@ -319,6 +321,8 @@ bool Alert::init_tasks(void)
     if(pthread_join(maintask,NULL)) return false;
     Logger::Write(Logger::INFO, "joined MAIN-task => exit");
     // free the memory
+    emailalarm->send(SERVICEMAIL,"program terminated!");
+    delete emailalarm;  // alarmmail-Modul
     delete ctrlfile;    // File-IO Modul
     delete tspeak;      // webinterface
     return true;
@@ -424,7 +428,7 @@ void Alert::main_handler(void)
         buzzertimer.StartTimer();
         switch_relais(ON);
         XBeeSwitch(XBEEALARM,SET);
-        emailalarm.send();
+        emailalarm->send(ALARMMAIL,"Halle Gruen");
         buzzeralarm   = true;
         sendsms       = true;
         alarm_blocked = true;
@@ -435,7 +439,7 @@ void Alert::main_handler(void)
     //-----------------------------------------------------------
     if(silentactive && armed) {
         if(!silent_blocked) {
-            emailalarm.send();
+            emailalarm->send(ALARMMAIL,"Halle Gruen");
             sendsms        = true;
             silent_blocked = true;
         }

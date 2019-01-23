@@ -24,6 +24,7 @@
 #include "../timer/EmaTimer.h"
 #include "../alarmsys.h"
 #include "../logger/logger.h"
+#include "../email/email.h"
 #include "../socketclient/ThingSpeak.h"
 // NAMESPACES
 using namespace std;
@@ -76,7 +77,9 @@ bool retval;
     try {
        if(stof(hstr1) < stof(hstr2)) {
            Logger::Write(Logger::INFO,"fona credit is low level, please charge your card");
-           // TODO: send service email
+           ss.str(""); ss.clear();
+           ss << "card credit is low: " << hstr1 << endl;
+           emailalarm->send(SERVICEMAIL,ss.str());
        }
     } catch(const exception& e) { cout << "catched exception creditcomp: " << e.what() << endl; }
 }

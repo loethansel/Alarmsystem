@@ -13,25 +13,77 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-
-#include "email.h"
+#include <sys/stat.h>
 #include "../logger/logger.h"
+#include "../files/ctrlfile.h"
+#include "../alarmsys.h"
+#include "email.h"
 
 using namespace std;
 using namespace logger;
 
-Email::Email()
+const char *a_filename="/home/debian/Alarmsystem/files/alarmmailer.sh";
+const char *s_filename="/home/debian/Alarmsystem/files/servicemailer.sh";
+
+
+void Email::CreateCheckFile(const char *fname,string text,string mailaddr)
 {
-    // TODO Auto-generated constructor stub
+ofstream mailfile;
+int file_exists;
+
+    //first check if the file exists...
+    mailfile.open(fname,ios::in);
+    if(mailfile.is_open()) { file_exists = 1; mailfile.close(); }
+    //...then open it in the appropriate way
+    if(file_exists != 1)
+    {
+       cout << "alarmfile does not exist!" << endl;
+       mailfile.open(fname,ios::out);
+       cout << "file opened succesfully!" << endl;
+       mailfile << "#!/bin/bash" << endl;
+       mailfile << "echo \"Alarmanlage\" | mail -s \""
+                << text
+                << "\" "
+                << mailaddr << endl;
+       mailfile.close();
+       chmod(fname,S_IRWXO | S_IRWXU | S_IRWXG);
+    }
 
 }
 
-bool Email::send(void)
+void Email::CreateFile(const char *fname,string text,string mailaddr)
+{
+ofstream mailfile;
+int file_exists;
+
+    //first check if the file exists...
+    cout << "alarmfile does not exist!" << endl;
+    mailfile.open(fname,ios::trunc);
+    cout << "file opened succesfully!" << endl;
+    mailfile << "#!/bin/bash" << endl;
+    mailfile << "echo \""
+             << text
+             << "\" | mail -s \""
+             << ctrlfile->ini.ALARM.alarmtext
+             << "\" "
+             << mailaddr << endl;
+    mailfile.close();
+    chmod(fname,S_IRWXO | S_IRWXU | S_IRWXG);
+}
+
+
+Email::Email()
+{
+    CreateCheckFile(a_filename,"Gruene Halle",ctrlfile->ini.EMAIL.alarmmail[0]);
+    CreateCheckFile(s_filename,"Gruene Halle",ctrlfile->ini.EMAIL.alarmmail[1]);
+}
+
+bool Email::execute(const char *filename)
 {
 FILE  *fp;
 
-    fp = popen(EMAILFILENAME,"w");
-    if (fp == NULL) {
+    fp = popen(filename,"w");
+    if(fp == NULL) {
         Logger::Write(Logger::ERROR,"Failed sending email");
         cout << "Failed sending email" << endl;
         return false;
@@ -39,15 +91,35 @@ FILE  *fp;
     else {
         Logger::Write(Logger::INFO,"Successs sending email");
         cout << "Successs sending email" << endl;
+        return true;
     }
     pclose(fp);
+}
+
+
+bool Email::send(uint8_t cmd,string text)
+{
+
+    switch(cmd) {
+       case SERVICEMAIL:
+           CreateFile(s_filename,text,ctrlfile->ini.EMAIL.servicemail);
+           execute(s_filename);
+       break;
+       case ALARMMAIL:
+           CreateFile(a_filename,text,ctrlfile->ini.EMAIL.alarmmail[0]);
+           execute(a_filename);
+           CreateFile(a_filename,text,ctrlfile->ini.EMAIL.alarmmail[1]);
+           execute(a_filename);
+       break;
+       default:
+       break;
+    }
     return true;
 }
 
 
 Email::~Email()
 {
-    // TODO Auto-generated destructor stub
 }
 
 // fp = popen("./mailer.sh","w");
