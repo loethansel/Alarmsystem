@@ -5,16 +5,11 @@
  *      Author: Pandel
  *
  *       */
-// INCLUDES
 // INCLUDE SYSTEM
-#include <fstream>
-#include <mutex>
 #include <string>
 #include <iostream>
 #include <stdlib.h>
 #include <unistd.h>
-#include <pthread.h>
-//#include <sys/time.h>
 // INCLUDE PROGRAM
 #include "fona.h"
 #include "Adafruit_FONA.h"

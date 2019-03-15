@@ -6,17 +6,12 @@
  *
  */
 
-#include <ctime>
-#include <time.h>
-#include <fstream>
+// INCLUDES
 #include <string>
 #include <iostream>
 #include <sstream>
-#include <iomanip>
 #include <stdlib.h>
 #include <unistd.h>
-#include <signal.h>
-#include <pthread.h>
 #include "FonaSerial.h"
 #include "../blacklib/BlackLib.h"
 #include "../blacklib/BlackUART/BlackUART.h"
@@ -24,8 +19,7 @@
 #include "../alarmsys.h"
 #include "../logger/logger.h"
 #include "../blacklib/BlackErr.h"
-
-
+// NAMESPACES
 using namespace std;
 using namespace BlackLib;
 // CLASSES

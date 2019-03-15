@@ -17,7 +17,10 @@
  * corresponding different constructor.Furthermore,you can customize the pin when your development board's SPI
  * interface is mismatch with official.All you have to do is choose different ways to instantiate object.
  */
+// INCLUDES
 #include "seeed_bme680.h"
+#include "../blacklib/BlackLib.h"
+#include "../blacklib/BlackI2C/BlackI2C.h"
 // NAMASPACES
 using namespace std;
 using namespace BlackLib;

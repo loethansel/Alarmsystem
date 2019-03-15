@@ -15,19 +15,12 @@
   BSD license, all text above must be included in any redistribution
  ****************************************************/
     // next line per http://postwarrior.com/arduino-ethershield-error-prog_char-does-not-name-a-type/
-
-#include <ctime>
-#include <mutex>
-#include <time.h>
-#include <fstream>
+// INCLUDES
 #include <string>
 #include <iostream>
 #include <sstream>
-#include <iomanip>
 #include <stdlib.h>
 #include <unistd.h>
-#include <signal.h>
-#include <pthread.h>
 #include "Adafruit_FONA.h"
 #include "FonaSerial.h"
 #include "../blacklib/BlackLib.h"
@@ -36,15 +29,16 @@
 #include "../alarmsys.h"
 #include "../logger/logger.h"
 #include "../blacklib/BlackErr.h"
-
-
+// NAMESPACES
 using namespace std;
 using namespace BlackLib;
 using namespace logger;
+// CLASSES
 BlackLib::BlackGPIO  pwr_out(GPIO_60,output,FastMode);
 BlackLib::BlackGPIO  pwr_in(GPIO_49,input);
 BlackLib::BlackGPIO  rst_out(GPIO_48,output,FastMode);
 FonaSerial *mySerial;
+
 /*
 bool prog_char_strlcmp(char *text, const char *ctext, int len)
 {

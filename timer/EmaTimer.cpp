@@ -2,15 +2,16 @@
  * EmaTimer.cpp
  *
  *  Created on: Dec 8, 2018
- *      Author: linux
+ *      Author: Pandel
  */
+// INCLUDES
 #include <ctime>
 #include <iostream>
 #include <signal.h>
-
 #include "EmaTimer.h"
-
+// NAMESPACES
 using namespace std;
+
 
 EmaTimer::EmaTimer(void (*fp)(union sigval arg))
 {

@@ -4,25 +4,24 @@
  *  Created on: 08.01.2019
  *      Author: Pandel
  */
+// INCLUDES
 #include <iostream>
 #include <sstream>
-#include <fstream>
 #include <string>
 #include <iomanip>
 #include <unistd.h>
 #include <stdlib.h>
-#include <signal.h>
 #include "ThingSpeak.h"
 #include "SocketClient.h"
 #include "../alarmsys.h"
 #include "../files/ctrlfile.h"
 #include "../logger/logger.h"
-
-
+// NAMESPACES
 using namespace std;
 using namespace logger;
-
+// CLASSES
 SocketClient sc("api.thingspeak.com",80);
+
 
 ThingSpeak::ThingSpeak()
 {

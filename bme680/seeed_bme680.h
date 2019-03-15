@@ -9,25 +9,10 @@
 */
 #ifndef _SEEED_BME680_H
 #define _SEEED_BME680_H
-// INCLUDES PROGRAM
-#include <ctime>
-#include <time.h>
-#include <fstream>
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-
-#include "../blacklib/BlackLib.h"
-#include "../blacklib/BlackI2C/BlackI2C.h"
+// INCLUDES
 #include "../bme680/bme680.h"
 // NAMESPACES
 using namespace std;
-using namespace BlackLib;
-
 
 typedef struct Result
 {

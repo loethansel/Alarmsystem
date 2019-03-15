@@ -4,25 +4,16 @@
  *  Created on: Nov 16, 2018
  *      Author: Pandel
  */
-// INCLUDES
-#include <fstream>
-#include <string>
+// INCLUDES SYSTEM
 #include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <pthread.h>
-#include <signal.h>
-#include <unistd.h>
-#include <ctime>
-#include <signal.h>
-#include <errno.h>
-#include <semaphore.h>
-
+// INCLUDES PROGRAM
 #include "ain_proc.h"
+#include "../alarmsys.h"
 #include "../logger/logger.h"
 #include "../timer/EmaTimer.h"
 #include "../socketclient/ThingSpeak.h"
-
+#include "../files/ctrlfile.h"
+#include "../blacklib/BlackADC/BlackADC.h"
 //---------------------------------------------------------------------------
 // DEFINES
 //---------------------------------------------------------------------------
@@ -32,13 +23,13 @@
 using namespace std;
 using namespace BlackLib;
 using namespace logger;
-// CLASSES
 // FOREWARD DECLARATIONS
 void linelog_handler(union sigval arg);
 void measure_handler(union sigval arg);
 // GLOBALVARS
 bool      silentalarm[4];
 float     valueFloat[4];
+// CLASSES
 pthread_t aintask;
 EmaTimer  linelogtimer(linelog_handler);
 EmaTimer  measuretimer(measure_handler);

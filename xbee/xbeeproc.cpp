@@ -5,17 +5,11 @@
  *      Author: Pandel
  */
 // INCLUDES
-#include <fstream>
 #include <string>
-#include <iostream>
 #include <sstream>
-#include <pthread.h>
-#include <signal.h>
+#include <stdlib.h>
+#include <sys/time.h>
 #include <unistd.h>
-#include <ctime>
-#include <signal.h>
-#include <errno.h>
-#include <semaphore.h>
 #include "../logger/logger.h"
 #include "../timer/EmaTimer.h"
 #include "../alarmsys.h"
@@ -303,7 +297,7 @@ struct tm *tm;
 int onhour, offhour;
 
     // interval switch
-    gettimeofday(&tmnow, NULL);
+    gettimeofday(&tmnow, nullptr);
     tm = localtime(&tmnow.tv_sec);
     onhour  = stoi(ctrlfile->ini.TIMESW.onhour);
     offhour = stoi(ctrlfile->ini.TIMESW.offhour);

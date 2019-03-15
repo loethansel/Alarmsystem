@@ -2,14 +2,17 @@
 //---------------------------------------------------------------------------
 // INCLUDE
 //---------------------------------------------------------------------------
-#include <mutex>
-#include <ctime>
 #include "alarmsys.h"
 #include "logger/logger.h"
 #include "timer/EmaTimer.h"
 #include "bme680/seeed_bme680.h"
 #include "xbee/xbeeproc.h"
 #include "socketclient/ThingSpeak.h"
+#include "socketserver/SocketServer.h"
+#include "relais/serialrelais.h"
+#include "gsm/gsm_proc.h"
+#include "analog/ain_proc.h"
+
 //---------------------------------------------------------------------------
 // USING NAMESPACE
 //---------------------------------------------------------------------------
@@ -47,6 +50,7 @@ void *MainTask(void *value);
 //---------------------------------------------------------------------------
 // CLASS Declarations
 //---------------------------------------------------------------------------
+SocketServer sserver("alarm_pipe",80);
 Seeed_BME680 bme;
 Alert        ema;
 EmaTimer bme680timer(bme680_handler);
@@ -356,16 +360,13 @@ void Alert::set_armed(void)
 {
 int i;
 bool  retval;
-mutex mtx;
 
     // only set to armed if not alarm line is active or armed yet
     if(armed || contactopen) return;
     Logger::Write(Logger::INFO, "alarmsystem ARMED!");
-    mtx.lock();
     ctrlfile->WriteSystemArmed(true);
     ctrlfile->Clear();
     retval = ctrlfile->ReadIniFile();
-    mtx.unlock();
     if(retval) { Logger::Write(Logger::INFO,  "reading INI file during getting armed"); }
     else       { Logger::Write(Logger::ERROR, "could not read INI file ==> exit"); program_end = true; }
     armed          = true;
@@ -390,7 +391,6 @@ mutex mtx;
 //----------------------------------------------------------
 void Alert::set_unarmed(void)
 {
-mutex mtx;
 
     Logger::Write(Logger::INFO, "alarmsystem DISARMED!");
     buzzertimer.StopTimer();
@@ -401,10 +401,8 @@ mutex mtx;
     alarm_blocked  = true;
     silent_blocked = true;
     Logger::Write(Logger::INFO,"set alarm-actors off");
-    mtx.lock();
     switch_relais(OFF);
     ctrlfile->WriteSystemArmed(false);
-    mtx.unlock();
     out_led.setValue(low);
     out_buzzer.setValue(high);
     sleep(1);
@@ -536,6 +534,9 @@ string        s;
     action.sa_flags = SA_NODEFER;
     sigaction (SIGTERM, &action, NULL);
     sigaction (SIGINT,  &action, NULL);
+    //!!
+    sserver.connectToClient();
+
     // FILE READING WRITING
     if(!ema.file_work()) { cout << "error reading inifile" << endl; return 0; }
     // IO'S AND CLASSES

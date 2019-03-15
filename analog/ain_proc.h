@@ -4,23 +4,11 @@
  *  Created on: Nov 16, 2018
  *      Author: Pandel
  */
-
 #ifndef AIN_PROC_H_
 #define AIN_PROC_H_
 
-// INCLUDE SYSTEM
-#include <fstream>
-#include <string>
-#include <iostream>
-// INCLUDE PROGRAM
-#include "../alarmsys.h"
-#include "../files/ctrlfile.h"
-#include "../blacklib/BlackADC/BlackADC.h"
 // NAMESPACES
 using namespace std;
-using namespace BlackLib;
-
-// typedef float (*fptr_t) (digitAfterPoint mode);
 
 // DEFINES
 #define AINVAL1 1

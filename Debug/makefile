@@ -10,6 +10,7 @@ RM := rm -rf
 -include sources.mk
 -include xbee/subdir.mk
 -include timer/subdir.mk
+-include socketserver/subdir.mk
 -include socketclient/subdir.mk
 -include rtc/subdir.mk
 -include relais/subdir.mk

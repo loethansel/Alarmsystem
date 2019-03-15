@@ -8,8 +8,9 @@
 #ifndef TIMER_EMATIMER_H_
 #define TIMER_EMATIMER_H_
 
-namespace std
-{
+#include <signal.h>
+
+using namespace std;
 
 class EmaTimer
 {
@@ -26,7 +27,5 @@ private:
     struct itimerspec ts;
     struct sigevent   se;
 };
-
-} /* namespace std */
 
 #endif /* TIMER_EMATIMER_H_ */

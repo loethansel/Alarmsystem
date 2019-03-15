@@ -7,31 +7,13 @@
 #ifndef ALARMSYS_H_
 #define ALARMSYS_H_
 // INCLUDE SYSTEM
-#include <ctime>
-#include <time.h>
-#include <fstream>
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
+
 // INCLUDE PROGRAM
-#include "blacklib/BlackLib.h"
-#include "blacklib/BlackUART/BlackUART.h"
-#include "blacklib/BlackGPIO/BlackGPIO.h"
-#include "gsm/fona.h"
-#include "gsm/gsm_proc.h"
-#include "relais/serialrelais.h"
-#include "analog/ain_proc.h"
 #include "files/ctrlfile.h"
-#include "files/iniparser.h"
 #include "socketclient/ThingSpeak.h"
 #include "email/email.h"
 
 using namespace std;
-using namespace BlackLib;
 // DEFINES
 #define TARGET
 
@@ -53,7 +35,7 @@ extern Email      *emailalarm;
 #define SET  true
 #define CLR  false
 #define LOGFILENAME "/home/debian/Alarmsystem/files/alarm.log"
-#define VERSION "V1.2"
+#define VERSION "V1.3"
 
 // MAIN CLASS
 class Alert

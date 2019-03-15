@@ -2,26 +2,18 @@
  * email.cpp
  *
  *  Created on: Nov 27, 2018
- *      Author: linux
+ *      Author: Pandel
  */
-// INCLUDE SYSTEM
-#include <fstream>
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
+// INCLUDES
 #include <sys/stat.h>
 #include "../logger/logger.h"
 #include "../files/ctrlfile.h"
 #include "../alarmsys.h"
 #include "email.h"
-
+// NAMESPACES
 using namespace std;
 using namespace logger;
-
+// GLOBVARS
 const char *a_filename="/home/debian/Alarmsystem/files/alarmmailer.sh";
 const char *s_filename="/home/debian/Alarmsystem/files/servicemailer.sh";
 
@@ -75,7 +67,7 @@ int file_exists;
 Email::Email()
 {
     CreateCheckFile(a_filename,"Gruene Halle",ctrlfile->ini.EMAIL.alarmmail[0]);
-    CreateCheckFile(s_filename,"Gruene Halle",ctrlfile->ini.EMAIL.alarmmail[1]);
+    CreateCheckFile(s_filename,"Gruene Halle",ctrlfile->ini.EMAIL.servicemail);
 }
 
 bool Email::execute(const char *filename)

@@ -1,12 +1,10 @@
 #ifndef CTRLFILE_H_
 #define CTRLFILE_H_
-
-#include <fstream>
-#include <string>
-#include <iostream>
-#include <sstream>
+// INCLUDES
 #include "iniparser.h"
-
+// NAMESPACES
+using namespace std;
+// DEFINES
 // xx SekundenCheck des GSM-Moduls
 #define NUMBERFILE     "/home/debian/Alarmsystem/files/gsm_number.txt"
 #define MSGFILE        "/home/debian/Alarmsystem/files/gsm_alarmmsg.txt"

@@ -16,15 +16,14 @@
  ****************************************************/
 #ifndef ADAFRUIT_FONA_H
 #define ADAFRUIT_FONA_H
-
+// INCLUDES
 #include <string>
 #include <stdlib.h>
 #include <unistd.h>
-//#include "includes/FONAConfig.h"
-//#include "includes/FONAExtIncludes.h"
-//#include "includes/platform/FONAPlatform.h"
+// NAMESPACES
 using namespace std;
 
+// DEFINES
 #undef FONADEBUG
 
 #define FONA800L 1

@@ -77,6 +77,7 @@ logger \
 relais \
 rtc \
 socketclient \
+socketserver \
 timer \
 xbee \
 
