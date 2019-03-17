@@ -32,11 +32,13 @@
 #include <netdb.h>
 #include <string>
 
+extern void *DisplayTask(void *value);
+extern pthread_t displaytask;
+
+
 class SocketServer
 {
 private:
-    int         serversocketfd;
-    int         clientsocketfd;
     int         clientlen;
     struct      sockaddr_un   serverAddress;
     struct      sockaddr_un   clientAddress;
@@ -48,11 +50,13 @@ private:
 
 
 public:
+    int         serversocketfd;
+    int         clientsocketfd;
 	SocketServer(std::string serverName, int portNumber);
 	void setClient(std::string serverName, int portNumber);
 	virtual int connectToClient();
 	virtual int disconnectFromClient();
-//	virtual int send(std::string message);
+	virtual int sendout(std::string message);
 	virtual std::string receive(int size);
 	bool isServerConnected() { return this->isConnected; }
 	virtual ~SocketServer();

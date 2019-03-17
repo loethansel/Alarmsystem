@@ -18,12 +18,13 @@ using namespace std;
 #define TARGET
 
 // GLOBAL VARS
-extern bool sendsms;
-extern bool armed;
-extern bool alarmactive;
-extern bool silentactive;
-extern bool program_end;
-extern bool contactopen;
+extern bool  sendsms;
+extern bool  armed;
+extern bool  alarmactive;
+extern bool  silentactive;
+extern bool  program_end;
+extern bool  contactopen;
+extern float temperature;
 
 // CLASSES EXTERN
 extern CtrlFile   *ctrlfile;
@@ -35,7 +36,7 @@ extern Email      *emailalarm;
 #define SET  true
 #define CLR  false
 #define LOGFILENAME "/home/debian/Alarmsystem/files/alarm.log"
-#define VERSION "V1.3"
+#define VERSION "V1.4"
 
 // MAIN CLASS
 class Alert

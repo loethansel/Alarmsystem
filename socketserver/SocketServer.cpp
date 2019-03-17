@@ -22,16 +22,46 @@
  * For more details, see http://www.derekmolloy.ie/
  */
 
-#include "SocketServer.h"
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include "SocketServer.h"
+#include "../timer/EmaTimer.h"
+#include "../alarmsys.h"
 
 using namespace std;
 
+// FOREWARD
+void display_handler(union sigval arg);
+// THREADS
+pthread_t displaytask;
+// CLASSES
+//EmaTimer displaytimer(display_handler);
+SocketServer sserver("/tmp/alarmpipe",00);
+
+//void display_handler(union sigval arg)
+void display_handler()
+{
+int erg;
+
+    char chr[6];
+    erg = recv(sserver.clientsocketfd, &chr, 6, 0);
+    if(erg == -1); //     cout << "not_received_data_from_client" << endl;
+    else if(erg == 0) cout << "client_shutdowned" << endl;
+    else {
+        cout << "received: " << string(chr) << endl;
+        string str;
+        str.clear();
+        temperature = 35.5;
+        str = to_string(temperature);
+
+        send(sserver.clientsocketfd,str.c_str(),sizeof(str.c_str()), 0);
+    }
+    // displaytimer.StartTimer();
+}
 
 SocketServer::SocketServer(std::string serverName, int portNumber)
 {
@@ -50,36 +80,17 @@ void SocketServer::setClient(std::string clientName, int portNumber)
     this->portNumber = portNumber;
 }
 
-int SocketServer::connectToClient(){
-
+int SocketServer::connectToClient()
+{
     unlink("/tmp/alarmpipe");
     serversocketfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if(serversocketfd < 0){
     	perror("Socket Client: error opening socket.\n");
     	return 1;
     }
-//    server = gethostbyname(clientName.data());
-//    if (server == NULL) {
-//        perror("Socket Client: error - no such host.\n");
-//        return 1;
-//    }
-    //bzero((char *) &serverAddress, sizeof(serverAddress));
-
-
     serverAddress.sun_family = AF_UNIX;
-
-
-   // bcopy((char *)server->h_addr,(char *)&clientAddress.sin_addr.s_addr, server->h_length);
-
-    //!!
-//    clientAddress.sin_addr.s_addr = htonl(INADDR_ANY);
-   // serverAddress.sun_addr.s_addr = "alarmpipe";
     strcpy(serverAddress.sun_path, "/tmp/alarmpipe");
-    //portNumber = 8421;
-    //!! end
 
-
-    //clientAddress.sin_port = htons(portNumber);
     if(bind(serversocketfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){
     	perror("Socket Server: error starting the server.\n");
     	return 1;
@@ -89,64 +100,34 @@ int SocketServer::connectToClient(){
     listen(serversocketfd, 5);
 
     clientlen = sizeof(clientAddress);
+    cout << "wait for client connection...";
     clientsocketfd = accept(serversocketfd, (sockaddr*) &clientAddress, (socklen_t*) &clientlen);
     fcntl(clientsocketfd, F_SETFL, O_NONBLOCK);
-    char chr[5];
-    chr[0] = 't';
-    chr[1] = 'e';
-    chr[2] = 's';
-    chr[3] = 't';
-    chr[4] = 0;
-    int erg;
-    send(clientsocketfd, &chr[0], 5, 0);
-    erg = recv(clientsocketfd, &chr, 5, 0);
-
-//    int erg;
-//    char chr[5];
-//    erg = read(clientsocketfd, &chr, 5);
-
-//    erg = recv(clientsocketfd, &chr, 5, 0);
-/*
-    while(1)
-    {
-        char ch[8];
-        int res;
-        res = recv(clientsocketfd, &ch, 5, 0);
-        if (res == -1) {
-            sleep(1);
-            cout << "not_received_data_from_client" << endl;
-        }
-        else if(res == 0) {
-            sleep(1);
-            printf("client_shutdowned\n");
-        }
-        else {
-            cout << "received:" << endl;
-            send(clientsocketfd, &ch[0], 5, 0);
-        }
-    }
-*/
+    cout << "success -> client is connected!" << endl;
     return 0;
 }
-/*
-int SocketServer::send(std::string message){
+
+// muss noch verfeinert werden
+int SocketServer::sendout(std::string message){
 	const char *writeBuffer = message.data();
 	int length = message.length();
-    int n = write(this->serversocketfd, writeBuffer, length);
-    if (n < 0){
-       perror("Socket Client: error writing to socket");
-       return 1;
-    }
+	send(sserver.clientsocketfd, writeBuffer, length, 0);
     return 0;
 }
-*/
-string SocketServer::receive(int size=1024){
+
+// muss noch verfeinert werden
+string SocketServer::receive(int size=1024)
+{
+int erg;
+
     char readBuffer[size];
-    int n = read(this->clientsocketfd, readBuffer, sizeof(readBuffer));
-    if (n < 0){
-       perror("Socket Client: error reading from socket");
+    erg = recv(this->clientsocketfd, readBuffer, sizeof(readBuffer), 0);
+    if(erg == -1) cout << "not_received_data_from_client" << endl;
+    else if(erg == 0) printf("client_shutdowned\n");
+    else {
+        return string(readBuffer);
     }
-    return string(readBuffer);
+    return "";
 }
 
 int SocketServer::disconnectFromClient(){
@@ -159,5 +140,33 @@ SocketServer::~SocketServer() {
 	if (this->isConnected == true){
 		disconnectFromClient();
 	}
+}
+
+
+//---------------------------------------------------------------------------
+// DISPLAY
+//---------------------------------------------------------------------------
+void *DisplayTask(void *value)
+{
+    // cyclic log the voltage value of each line
+//    try {
+//    linelogtimer.Create_Timer(0x00,stoi(ctrlfile->ini.ALARM.infotime)*60);
+//    } catch(const exception& e) { cout << "catched exception analog infotime: " << e.what() << endl; }
+//    linelogtimer.StartTimer();
+
+   // wait blocking for client connection
+   sserver.connectToClient();
+
+//   displaytimer.Create_Timer(1000,0x00);
+//   displaytimer.StartTimer();
+
+   while(1) {
+        // INTERES SIGNAL PROGRAM END!!
+        if(program_end) break;
+        display_handler();
+        usleep(1000);
+    }
+    sserver.disconnectFromClient();
+    pthread_exit(NULL);
 }
 

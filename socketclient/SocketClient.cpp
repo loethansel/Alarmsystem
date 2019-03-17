@@ -22,10 +22,11 @@
  * For more details, see http://www.derekmolloy.ie/
  */
 
-#include "SocketClient.h"
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include "SocketClient.h"
+
 using namespace std;
 
 
@@ -61,7 +62,7 @@ int SocketClient::connectToServer(){
     bcopy((char *)server->h_addr,(char *)&serverAddress.sin_addr.s_addr, server->h_length);
     serverAddress.sin_port = htons(portNumber);
 
-    if (connect(socketfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0){
+    if(connect(socketfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0){
     	perror("Socket Client: error connecting to the server.\n");
     	return 1;
     }

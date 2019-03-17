@@ -23,15 +23,16 @@ using namespace logger;
 // GLOBAL VAR Declarations
 //---------------------------------------------------------------------------
 ofstream ofs;
-bool program_end;
-bool sendsms;
-bool armed;
-bool alarmactive;
-bool silentactive;
-bool contactopen;
-bool buzzeralarm;
-bool alarm_blocked;
-bool silent_blocked;
+bool  program_end;
+bool  sendsms;
+bool  armed;
+bool  alarmactive;
+bool  silentactive;
+bool  contactopen;
+bool  buzzeralarm;
+bool  alarm_blocked;
+bool  silent_blocked;
+float temperature;
 
 //---------------------------------------------------------------------------
 // Threads Declarations
@@ -50,7 +51,7 @@ void *MainTask(void *value);
 //---------------------------------------------------------------------------
 // CLASS Declarations
 //---------------------------------------------------------------------------
-SocketServer sserver("alarm_pipe",80);
+
 Seeed_BME680 bme;
 Alert        ema;
 EmaTimer bme680timer(bme680_handler);
@@ -91,6 +92,7 @@ stringstream ss;
         s = ss.str();
         Logger::Write(Logger::INFO,s);
         tspeak->setval(TEMPFIELD,bme.temperature);
+        temperature = bme.temperature;
     }
     bme680timer.StartTimer();
     tspeak->pushall();
@@ -316,6 +318,13 @@ bool Alert::init_tasks(void)
         Logger::Write(Logger::ERROR, "error creating XBee-task => exit");
         return false;
     }
+    // Create Display-Task
+    if(pthread_create(&displaytask, NULL,&DisplayTask,NULL)) {
+        Logger::Write(Logger::ERROR, "error creating Display-task => exit");
+        return false;
+    }
+    if(pthread_join(displaytask,NULL)) return false;
+    Logger::Write(Logger::INFO, "joined DISPLAY-task => exit");
     if(pthread_join(xbeetask,NULL)) return false;
     Logger::Write(Logger::INFO, "joined XBEE-task => exit");
     if(pthread_join(aintask,NULL)) return false;
@@ -454,7 +463,7 @@ int     alarmtime;
 int     autoalarmtime;
 
    // check serialrelais
-   version      = serialrelais.getFirmwareVersion();
+   version = serialrelais.getFirmwareVersion();
    if(version == 0) Logger::Write(Logger::ERROR, "serial serialrelais did not respond");
    // switch off serial serialrelais
    ema.switch_relais(OFF);
@@ -534,8 +543,6 @@ string        s;
     action.sa_flags = SA_NODEFER;
     sigaction (SIGTERM, &action, NULL);
     sigaction (SIGINT,  &action, NULL);
-    //!!
-    sserver.connectToClient();
 
     // FILE READING WRITING
     if(!ema.file_work()) { cout << "error reading inifile" << endl; return 0; }
