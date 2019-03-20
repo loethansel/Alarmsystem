@@ -28,40 +28,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include "../logger/logger.h"
 #include "SocketServer.h"
-#include "../timer/EmaTimer.h"
-#include "../alarmsys.h"
 
 using namespace std;
+using namespace logger;
 
-// FOREWARD
-void display_handler(union sigval arg);
-// THREADS
-pthread_t displaytask;
-// CLASSES
-//EmaTimer displaytimer(display_handler);
-SocketServer sserver("/tmp/alarmpipe",00);
-
-//void display_handler(union sigval arg)
-void display_handler()
-{
-int erg;
-
-    char chr[6];
-    erg = recv(sserver.clientsocketfd, &chr, 6, 0);
-    if(erg == -1); //     cout << "not_received_data_from_client" << endl;
-    else if(erg == 0) cout << "client_shutdowned" << endl;
-    else {
-        cout << "received: " << string(chr) << endl;
-        string str;
-        str.clear();
-        temperature = 35.5;
-        str = to_string(temperature);
-
-        send(sserver.clientsocketfd,str.c_str(),sizeof(str.c_str()), 0);
-    }
-    // displaytimer.StartTimer();
-}
 
 SocketServer::SocketServer(std::string serverName, int portNumber)
 {
@@ -74,44 +46,50 @@ SocketServer::SocketServer(std::string serverName, int portNumber)
 	this->isConnected    = false;
 }
 
-void SocketServer::setClient(std::string clientName, int portNumber)
+void SocketServer::setServer(std::string clientName, int portNumber)
 {
     this->serverName = serverName;
     this->portNumber = portNumber;
+    disconnectFromClient();
+    connectToClient();
 }
 
 int SocketServer::connectToClient()
 {
-    unlink("/tmp/alarmpipe");
+    unlink(this->serverName.c_str());
     serversocketfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if(serversocketfd < 0){
     	perror("Socket Client: error opening socket.\n");
     	return 1;
     }
     serverAddress.sun_family = AF_UNIX;
-    strcpy(serverAddress.sun_path, "/tmp/alarmpipe");
+    strcpy(serverAddress.sun_path,this->serverName.c_str());
 
-    if(bind(serversocketfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){
+    if(bind(serversocketfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+        Logger::Write(Logger::ERROR,"Socket Server: error starting the server");
     	perror("Socket Server: error starting the server.\n");
     	return 1;
     }
-    this->isConnected = true;
-
     listen(serversocketfd, 5);
-
     clientlen = sizeof(clientAddress);
     cout << "wait for client connection...";
+    Logger::Write(Logger::INFO,"wait for client connection...");
     clientsocketfd = accept(serversocketfd, (sockaddr*) &clientAddress, (socklen_t*) &clientlen);
     fcntl(clientsocketfd, F_SETFL, O_NONBLOCK);
+    this->isConnected    = true;
+    Logger::Write(Logger::INFO,"success -> client is connected");
     cout << "success -> client is connected!" << endl;
     return 0;
 }
 
 // muss noch verfeinert werden
-int SocketServer::sendout(std::string message){
-	const char *writeBuffer = message.data();
-	int length = message.length();
-	send(sserver.clientsocketfd, writeBuffer, length, 0);
+int SocketServer::sendout(std::string message)
+{
+const char *writeBuffer = message.data();
+int length = message.length();
+    if(!this->isConnected) return -1;
+
+    if(send(clientsocketfd, writeBuffer, length, 0) == -1) disconnectFromClient();
     return 0;
 }
 
@@ -143,30 +121,4 @@ SocketServer::~SocketServer() {
 }
 
 
-//---------------------------------------------------------------------------
-// DISPLAY
-//---------------------------------------------------------------------------
-void *DisplayTask(void *value)
-{
-    // cyclic log the voltage value of each line
-//    try {
-//    linelogtimer.Create_Timer(0x00,stoi(ctrlfile->ini.ALARM.infotime)*60);
-//    } catch(const exception& e) { cout << "catched exception analog infotime: " << e.what() << endl; }
-//    linelogtimer.StartTimer();
-
-   // wait blocking for client connection
-   sserver.connectToClient();
-
-//   displaytimer.Create_Timer(1000,0x00);
-//   displaytimer.StartTimer();
-
-   while(1) {
-        // INTERES SIGNAL PROGRAM END!!
-        if(program_end) break;
-        display_handler();
-        usleep(1000);
-    }
-    sserver.disconnectFromClient();
-    pthread_exit(NULL);
-}
 

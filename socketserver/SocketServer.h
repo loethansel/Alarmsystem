@@ -32,8 +32,8 @@
 #include <netdb.h>
 #include <string>
 
-extern void *DisplayTask(void *value);
-extern pthread_t displaytask;
+
+using namespace std;
 
 
 class SocketServer
@@ -45,15 +45,15 @@ private:
     struct 	    hostent       *server;
     std::string serverName;
     int         portNumber;
-    bool        isConnected;
     char ioBuff[32];
 
 
 public:
     int         serversocketfd;
     int         clientsocketfd;
+    bool        isConnected;
 	SocketServer(std::string serverName, int portNumber);
-	void setClient(std::string serverName, int portNumber);
+	void setServer(std::string serverName, int portNumber);
 	virtual int connectToClient();
 	virtual int disconnectFromClient();
 	virtual int sendout(std::string message);

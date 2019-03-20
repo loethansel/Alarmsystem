@@ -349,6 +349,7 @@ const char   armedfilename[] = ARMEDFILE;
       else     armedfile << "0" << endl;
 	  armedfile << "ETX" << endl;
    }
+   armedfile.close();
    return true;
 }
 
@@ -380,6 +381,7 @@ bool       readval;
       if(retval == -1) return false;
    }
    armed_from_file = readval;
+   armedfile.close();
    return true;
 }
 

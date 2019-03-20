@@ -2,7 +2,7 @@
  * gsm_proc.h
  *
  *  Created on: Nov 9, 2018
- *      Author: linux
+ *      Author: Pandel
  */
 
 #ifndef GSM_PROC_H_

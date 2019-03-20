@@ -11,6 +11,7 @@
 // INCLUDE PROGRAM
 #include "files/ctrlfile.h"
 #include "socketclient/ThingSpeak.h"
+#include "socketserver/DisplayServer.h"
 #include "email/email.h"
 
 using namespace std;
@@ -24,12 +25,14 @@ extern bool  alarmactive;
 extern bool  silentactive;
 extern bool  program_end;
 extern bool  contactopen;
-extern float temperature;
+extern bool  xbeetest;
+
 
 // CLASSES EXTERN
-extern CtrlFile   *ctrlfile;
-extern ThingSpeak *tspeak;
-extern Email      *emailalarm;
+extern CtrlFile      *ctrlfile;
+extern ThingSpeak    *tspeak;
+extern Email         *emailalarm;
+extern DisplayServer *display;
 // DEFINES
 #define ON   true
 #define OFF  false

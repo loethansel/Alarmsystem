@@ -2,13 +2,16 @@
 //---------------------------------------------------------------------------
 // INCLUDE
 //---------------------------------------------------------------------------
+// INCLUDES SYSTEM
+#include <iomanip>
+// PROJECT
 #include "alarmsys.h"
 #include "logger/logger.h"
 #include "timer/EmaTimer.h"
 #include "bme680/seeed_bme680.h"
 #include "xbee/xbeeproc.h"
 #include "socketclient/ThingSpeak.h"
-#include "socketserver/SocketServer.h"
+#include "socketserver/DisplayServer.h"
 #include "relais/serialrelais.h"
 #include "gsm/gsm_proc.h"
 #include "analog/ain_proc.h"
@@ -32,7 +35,7 @@ bool  contactopen;
 bool  buzzeralarm;
 bool  alarm_blocked;
 bool  silent_blocked;
-float temperature;
+bool  xbeetest;
 
 //---------------------------------------------------------------------------
 // Threads Declarations
@@ -51,7 +54,6 @@ void *MainTask(void *value);
 //---------------------------------------------------------------------------
 // CLASS Declarations
 //---------------------------------------------------------------------------
-
 Seeed_BME680 bme;
 Alert        ema;
 EmaTimer bme680timer(bme680_handler);
@@ -68,10 +70,13 @@ BlackLib::BlackGPIO  in_disarm(BlackLib::GPIO_51 ,BlackLib::input); // P9.16
 // I2C-serialrelais
 SerialRelais serialrelais;
 // EMAIL
-Email        *emailalarm;
+Email         *emailalarm;
 // FILES
-CtrlFile     *ctrlfile;
-ThingSpeak   *tspeak;
+CtrlFile      *ctrlfile;
+ThingSpeak    *tspeak;
+// DISPLAY
+DisplayServer *display;
+
 
 
 //----------------------------------------------------------
@@ -82,7 +87,11 @@ void bme680_handler(union sigval arg)
 string       s;
 stringstream ss;
 
-    if(!bme.performReading()) Logger::Write(Logger::ERROR,"bm680 read failure");
+    if(!bme.performReading()) {
+        Logger::Write(Logger::ERROR,"bm680 read failure");
+        // message to display
+        display->SetVal(BMESTATE,"readerror");
+    }
     else {
         ss << "bme680: "
            << "temperature = " << bme.temperature << "*C; "
@@ -91,8 +100,20 @@ stringstream ss;
            << "gas resist= "   << bme.gas_resistance << " -;";
         s = ss.str();
         Logger::Write(Logger::INFO,s);
+        // values to display
+        ss.str(""); ss.clear();
+        ss << fixed << setprecision(2) << bme.temperature;
+        display->SetVal(TEMPSTATE,ss.str());
+        ss.str(""); ss.clear();
+        ss << fixed << setprecision(2) << bme.pressure;
+        display->SetVal(PRESSTATE,ss.str());
+        ss.str(""); ss.clear();
+        ss << fixed << setprecision(2) << bme.humidity;
+        display->SetVal(HUMISTATE,ss.str());
+        // values to inet
         tspeak->setval(TEMPFIELD,bme.temperature);
-        temperature = bme.temperature;
+        // message to display
+        display->SetVal(BMESTATE,"running");
     }
     bme680timer.StartTimer();
     tspeak->pushall();
@@ -273,6 +294,9 @@ string directionbuff[] = {"0","in","out","both"};
     Logger::Write(Logger::INFO,s);
     // THINGSPEAK
     tspeak     = new ThingSpeak;
+    // DISPLAY
+    display    = new DisplayServer;
+    // EMAIL
     emailalarm = new Email;
     emailalarm->send(SERVICEMAIL,"program started!");
     // GPIO-OVERVIEW
@@ -323,6 +347,8 @@ bool Alert::init_tasks(void)
         Logger::Write(Logger::ERROR, "error creating Display-task => exit");
         return false;
     }
+    // message to display
+    display->SetVal(SYSSTATE,"running");
     if(pthread_join(displaytask,NULL)) return false;
     Logger::Write(Logger::INFO, "joined DISPLAY-task => exit");
     if(pthread_join(xbeetask,NULL)) return false;
@@ -335,9 +361,12 @@ bool Alert::init_tasks(void)
     Logger::Write(Logger::INFO, "joined MAIN-task => exit");
     // free the memory
     emailalarm->send(SERVICEMAIL,"program terminated!");
+    // message to display
+    display->SetVal(SYSSTATE,"terminated");
     delete emailalarm;  // alarmmail-Modul
     delete ctrlfile;    // File-IO Modul
     delete tspeak;      // webinterface
+    delete display;     // display
     return true;
 }
 
@@ -400,7 +429,7 @@ bool  retval;
 //----------------------------------------------------------
 void Alert::set_unarmed(void)
 {
-
+    display->SetVal(ALARMSTATE,"alarmoff");
     Logger::Write(Logger::INFO, "alarmsystem DISARMED!");
     buzzertimer.StopTimer();
     armed          = false;
@@ -431,6 +460,7 @@ void Alert::main_handler(void)
     // set alarm output actors
     //-----------------------------------------------------------
     if(alarmactive && !alarm_blocked && armed) {
+        display->SetVal(ALARMSTATE,"alarmactive");
         Logger::Write(Logger::INFO,"set alarm-actors on");
         buzzertimer.StartTimer();
         switch_relais(ON);
@@ -451,6 +481,16 @@ void Alert::main_handler(void)
             silent_blocked = true;
         }
     } else silent_blocked = false;
+    //-----------------------------------------------------------
+    // xbeetest
+    //-----------------------------------------------------------
+    if(xbeetest) {
+        Logger::Write(Logger::INFO,"xbeetest");
+        xbeetest = false;
+        XBeeSwitch(XBEEALL,SET);
+        sleep(2);
+        XBeeSwitch(XBEEALL,CLR);
+    }
 }
 
 //-----------------------------------------------------------
@@ -464,9 +504,13 @@ int     autoalarmtime;
 
    // check serialrelais
    version = serialrelais.getFirmwareVersion();
-   if(version == 0) Logger::Write(Logger::ERROR, "serial serialrelais did not respond");
-   // switch off serial serialrelais
+   if(version == 0) {
+       display->SetVal(RELAISSTATE,"error");
+       Logger::Write(Logger::ERROR, "serial serialrelais did not respond");
+   } else display->SetVal(RELAISSTATE,"ok");
+    // switch off serial serialrelais
    ema.switch_relais(OFF);
+   display->SetVal(ALARMSTATE,"alarmoff");
    try {
    // setup for disarm after alarm
    alarmtime = stoi(ctrlfile->ini.ALARM.alarmtime);
@@ -512,6 +556,7 @@ Alert::Alert()
     silentactive   = false;
     silent_blocked = true;
     alarm_blocked  = true;
+    xbeetest       = false;
 }
 
 Alert::~Alert()

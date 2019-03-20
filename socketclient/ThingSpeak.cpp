@@ -52,7 +52,7 @@ void ThingSpeak::pushall(void)
 {
 ostringstream ts_head, ts_data;
 int len;
-bool retval;
+int retval;
 
    ts_data << "field1=" << fixed << setprecision(2) << fieldval[0] << "&"
            << "field2=" << fixed << setprecision(2) << fieldval[1] << "&"
@@ -89,8 +89,14 @@ bool retval;
    sc.send(string(ts_data.str()));
    string rec = sc.receive(1024);
    retval = rec.find("OK");
-   if(retval != -1) Logger::Write(Logger::INFO,"thingspeak send data successful");
-   else Logger::Write(Logger::ERROR,"thingspeak send data fail");
+   if(retval != -1) {
+       display->SetVal(SOCKSTATE,"datatransfer");
+       Logger::Write(Logger::INFO,"thingspeak send data successful");
+   }
+   else {
+       display->SetVal(SOCKSTATE,"error");
+       Logger::Write(Logger::ERROR,"thingspeak send data fail");
+   }
    sc.disconnectFromServer();
 }
 
@@ -100,9 +106,8 @@ void ThingSpeak::pushout(uint16_t feld, float value)
 ostringstream ts_head, ts_data;
 stringstream ss;
 string s;
-char harr[40];
 int len;
-bool retval;
+int retval;
 
    setval(feld,value);
    ts_data << "field" << dec << feld << "=" << fixed << setprecision(2) << value << endl;

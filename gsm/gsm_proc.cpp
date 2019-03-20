@@ -6,6 +6,7 @@
  *
  *       */
 // INCLUDE SYSTEM
+#include <iomanip>
 #include <string>
 #include <iostream>
 #include <stdlib.h>
@@ -56,6 +57,7 @@ bool retval;
         Logger::Write(Logger::ERROR,"fona get and compare credit check failed");
         return;
     }
+    display->SetVal(CREDITSTATE,string(FONA1.credit_aschar));
     tspeak->setval(CREDITFIELD,FONA1.credit_numeric);
     ss.str(""); ss.clear();
     ss << FONA1.credit_aschar;
@@ -104,6 +106,7 @@ void rssi_handler(union sigval arg)
 {
 static int rssifailcnt = 0;
 bool retval;
+stringstream ss;
 
    retval = FONA1.RxLevelCheck();
    if(!retval) {
@@ -112,10 +115,14 @@ bool retval;
        if(++rssifailcnt > stoi(ctrlfile->ini.GSM.rssideadtime)) {
            FONA1.begin();
            Logger::Write(Logger::ERROR,"rssi-error: fona can't get network signal!");
+           display->SetVal(RSSISTATE,"0");
            rssifailcnt = 0;
        }
    }
    else {
+       ss.str(""); ss.clear();
+       ss << FONA1.credit_numeric;
+       display->SetVal(RSSISTATE,ss.str());
        tspeak->setval(RSSIFIELD,static_cast<float>(FONA1.rxpegel_numeric));
    }
    rssitimer.StartTimer();
@@ -138,6 +145,8 @@ static bool firstcheck = false;
            FONA1.begin();
            Logger::Write(Logger::ERROR,"livecheck-error: fona restarted!");
            livefailcnt = 0;
+           // message to display
+           display->SetVal(GSMSTATE,"liveerror");
        }
    }
    else {
@@ -149,6 +158,8 @@ static bool firstcheck = false;
           firstcheck = true;
        }
        cout << "fona is AT+OK!" << endl;
+       // message to display
+       display->SetVal(GSMSTATE,"running");
    }
    livetimer.StartTimer();
 }
@@ -244,6 +255,8 @@ stringstream ss;
           gsmtimer.StartTimer();
           gsminfotimer.Create_Timer(0,stoi(ctrlfile->ini.ALARM.infotime)*60);
           } catch(const exception& e) { cout << "catched exception gsmproc: " << e.what() << endl; }
+          // message to display
+          display->SetVal(GSMSTATE,"running");
           Logger::Write(Logger::INFO,"fona timer init");
        }
    }

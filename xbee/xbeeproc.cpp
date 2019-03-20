@@ -359,10 +359,12 @@ int cyclesecs, onsecs;
 
    // start xbee on power up
    if(!xbee.begin()) {
+       display->SetVal(XBEESTATE,"...error");
        Logger::Write(Logger::ERROR,"poweron-Error: xbee uart open failure");
        cout << "poweron-error: xbee startet nicht!" << endl;
        xbee_ok     = false;
    } else {
+       display->SetVal(XBEESTATE,"uart open");
        xbee_ok = true;
        Logger::Write(Logger::INFO,"xbee powered on");
        // switchon every hour

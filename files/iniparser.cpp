@@ -21,6 +21,8 @@ int INIParser::ReadINI(string path)
 {
     ifstream in_conf_file(path.c_str());
     if(!in_conf_file) return 0;
+    // clear map
+    Clear();
     string str_line = "";
     string str_root = "";
     vector<ININode> vec_ini;

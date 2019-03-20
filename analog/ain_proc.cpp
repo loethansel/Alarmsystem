@@ -79,7 +79,9 @@ unsigned int i;
 double       tmpfloatval[4];
 float        umin, umax;
 bool         result;
+stringstream ss;
 
+    ss.str(""); ss.clear();
     // return true for lines that should not be checked
     if(ctrlfile->ini.ALARM_LINE.lineactv[line] == "false") return true;
     // read min/max thresholds
@@ -94,6 +96,8 @@ bool         result;
             for(i=0;i<MIDCNT;i++) { tmpfloatval[0] += analog0.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
             valueFloat[0] = tmpfloatval[0] / MIDCNT;
             tspeak->setval(LINE1FIELD,valueFloat[0]);
+            ss << fixed << setprecision(3) << valueFloat[0];
+            display->SetVal(LINE1STATE,ss.str());
             if((valueFloat[0] >= umax) || (valueFloat[0] <= umin)) result = false;
             else result = true;
         break;
@@ -102,6 +106,8 @@ bool         result;
             for(i=0;i<MIDCNT;i++) { tmpfloatval[1] += analog1.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
             valueFloat[1] = tmpfloatval[1] / MIDCNT;
             tspeak->setval(LINE2FIELD,valueFloat[1]);
+            ss << fixed << setprecision(3) << valueFloat[1];
+            display->SetVal(LINE2STATE,ss.str());
             if((valueFloat[1] >= umax) || (valueFloat[1] <= umin)) result = false;
             else result = true;
         break;
@@ -110,6 +116,8 @@ bool         result;
             for(i=0;i<MIDCNT;i++) { tmpfloatval[2] += analog2.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
             valueFloat[2] = tmpfloatval[2] / MIDCNT;
             tspeak->setval(LINE3FIELD,valueFloat[2]);
+            ss << fixed << setprecision(3) << valueFloat[2];
+            display->SetVal(LINE3STATE,ss.str());
             if((valueFloat[2] >= umax) || (valueFloat[2] <= umin)) result = false;
             else result = true;
         break;
@@ -118,6 +126,8 @@ bool         result;
             for(i=0;i<MIDCNT;i++) { tmpfloatval[3] += analog3.getConvertedValue(BlackLib::dap2) * VOLTPRODIGIT; usleep(MIDTIME); }
             valueFloat[3] = tmpfloatval[3] / MIDCNT;
             tspeak->setval(LINE4FIELD,valueFloat[3]);
+            ss << fixed << setprecision(3) << valueFloat[3];
+            display->SetVal(LINE4STATE,ss.str());
             if((valueFloat[3] >= umax) || (valueFloat[3] <= umin)) result = false;
             else result = true;
         break;
