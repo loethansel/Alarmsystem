@@ -121,7 +121,7 @@ stringstream ss;
    }
    else {
        ss.str(""); ss.clear();
-       ss << FONA1.credit_numeric;
+       ss << FONA1.rxpegel_aschar;
        display->SetVal(RSSISTATE,ss.str());
        tspeak->setval(RSSIFIELD,static_cast<float>(FONA1.rxpegel_numeric));
    }
